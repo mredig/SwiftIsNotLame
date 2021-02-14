@@ -1,0 +1,5 @@
+import lame
+
+struct SwiftIsNotLame {
+
+}
