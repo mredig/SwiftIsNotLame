@@ -3,16 +3,29 @@ import Foundation
 
 let lameGlobal = lame_init()
 
-lame_set_errorf(lameGlobal) { format, args in
-	print("Error occurred:\nformat: \(String(describing: format))\nargs: \(String(describing: args))")
+func logFromLame(_ unsafeFormat: UnsafePointer<Int8>?, _ args: CVaListPointer?, source: String) {
+	guard
+		let raw = UnsafeRawPointer(unsafeFormat)?.assumingMemoryBound(to: UInt8.self),
+		let args = args
+	else {
+		print("\(source) output ocurred, but was not translatable.")
+		return
+	}
+	let formatCStr = String(cString: raw)
+	let formatted = NSString(format: formatCStr, arguments: args)
+	print(formatted)
 }
 
-lame_set_debugf(lameGlobal) { (format, args) in
-	print("Debug output occurred:\nformat: \(String(describing: format))\nargs: \(String(describing: args))")
+lame_set_errorf(lameGlobal) { format, args in
+	logFromLame(format, args, source: "Error")
+}
+
+lame_set_debugf(lameGlobal) { format, args in
+	logFromLame(format, args, source: "Debug")
 }
 
 lame_set_msgf(lameGlobal) { format, args in
-	print("message output occurred:\nformat: \(String(describing: format))\nargs: \(String(describing: args))")
+	logFromLame(format, args, source: "Message")
 }
 
 lame_set_num_channels(lameGlobal, 2)
@@ -57,13 +70,14 @@ func printData<Element>(_ t: UnsafePointer<Element>, count: Int) {
 }
 
 printData(fakePCM, count: 20)
-printData(mp3Data, count: 20)
 
 var bytesWritten = lame_encode_buffer(lameGlobal, buffer, buffer, 50, mp3Data, Int32(mp3BufferSize))
+bytesWritten = lame_encode_buffer(lameGlobal, buffer, buffer, 50, mp3Data, Int32(mp3BufferSize))
+bytesWritten = lame_encode_buffer(lameGlobal, buffer, buffer, 50, mp3Data, Int32(mp3BufferSize))
+bytesWritten = lame_encode_buffer(lameGlobal, buffer, buffer, 50, mp3Data, Int32(mp3BufferSize))
+bytesWritten = lame_encode_buffer(lameGlobal, buffer, buffer, 50, mp3Data, Int32(mp3BufferSize))
 
-//badBuffer.
-//print(badBuffer?[0])
-
+bytesWritten = lame_encode_flush(lameGlobal, mp3Data, Int32(mp3BufferSize))
 printData(mp3Data, count: 20)
 
 print(bytesWritten)
