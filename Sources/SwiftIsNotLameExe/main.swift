@@ -28,6 +28,7 @@ lame_set_msgf(lameGlobal) { format, args in
 	logFromLame(format, args, source: "Message")
 }
 
+lame_set_num_samples(lameGlobal, 130661)
 lame_set_num_channels(lameGlobal, 2)
 lame_set_in_samplerate(lameGlobal, 44100)
 lame_set_brate(lameGlobal, 128)
