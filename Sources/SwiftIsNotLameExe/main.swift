@@ -26,14 +26,16 @@ func generateTone(hz: CGFloat) -> [Int16] {
 	}
 }
 
-let fourforty = generateTone(hz: 440)
+let fourforty = Array(repeating: generateTone(hz: 440), count: 10)
+	.flatMap { $0 }
 	.withUnsafeBufferPointer { $0 }
-	.baseAddress
-let fiveforty = generateTone(hz: 540)
-	.withUnsafeBufferPointer { $0 }
-	.baseAddress
 
-var remainingSamples = sampleSize
+let fiveforty = Array(repeating: generateTone(hz: 540), count: 10)
+	.flatMap { $0 }
+	.withUnsafeBufferPointer { $0 }
+
+
+var remainingSamples = fourforty.count
 var usedSamples = 0
 
 var maxSampleSize = Int(lame_get_maximum_number_of_samples(notLame.lameGlobal, notLame.defaultMp3Buffer.count))
@@ -41,10 +43,10 @@ var maxSampleSize = Int(lame_get_maximum_number_of_samples(notLame.lameGlobal, n
 var mp3Data = Data()
 
 while remainingSamples > 0 {
-	let channelOne = fourforty?.advanced(by: usedSamples)
-	let channelTwo = fiveforty?.advanced(by: usedSamples)
+	let channelOne = fourforty.baseAddress?.advanced(by: usedSamples)
+	let channelTwo = fiveforty.baseAddress?.advanced(by: usedSamples)
 
-	mp3Data += try notLame.encodeChunk(channelOne: channelOne!, channelTwo: channelTwo!, sampleSize: maxSampleSize)
+	mp3Data += try notLame.encodeChunk(channelOne: channelOne, channelTwo: channelTwo, sampleSize: maxSampleSize)
 
 	remainingSamples -= maxSampleSize
 	usedSamples += maxSampleSize
