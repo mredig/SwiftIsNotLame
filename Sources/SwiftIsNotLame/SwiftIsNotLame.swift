@@ -37,8 +37,8 @@ class SwiftIsNotLame {
 	var mode = Mode.jointStereo
 
 	enum Bitrate {
-		case CBR(rate: UInt16)
-		case VBR(rate: UInt16)
+		case CBR(rate: Int32)
+		case VBR(rate: Int32)
 	}
 	var bitRate = Bitrate.CBR(rate: 256) {
 		didSet { validateBitrate() }
@@ -138,7 +138,7 @@ class SwiftIsNotLame {
 			if value == -1 {
 				throw LameError.mp3BufferTooSmall
 			} else {
-				throw LameError.mp3InternalError(code: bytesWritten)
+				throw LameError.mp3InternalError(code: value)
 			}
 		}
 	}
