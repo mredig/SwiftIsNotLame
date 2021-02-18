@@ -100,7 +100,7 @@ class SwiftIsNotLame {
 		return Data(bytes: _mp3Buffer.baseAddress!, count: Int(bytesWritten))
 	}
 
-	func encodeChunk(channelOne: UnsafePointer<Int16>, channelTwo: UnsafePointer<Int16>? = nil, sampleSize: Int, mp3Buffer: UnsafeMutableBufferPointer<UInt8>? = nil) throws -> Data {
+	func encodeChunk<BitRep: PCMBitRepresentation>(channelOne: UnsafePointer<BitRep>, channelTwo: UnsafePointer<BitRep>? = nil, sampleSize: Int, mp3Buffer: UnsafeMutableBufferPointer<UInt8>? = nil) throws -> Data {
 		let mp3Buffer = mp3Buffer ?? _mp3Buffer
 
 		guard let mp3Pointer = mp3Buffer.baseAddress else {
@@ -109,7 +109,8 @@ class SwiftIsNotLame {
 
 		let channel2 = channelTwo ?? channelOne
 
-		let bytesWritten = lame_encode_buffer(lameGlobal, channelOne, channel2, Int32(sampleSize), mp3Pointer, Int32(mp3Buffer.count))
+		let bytesWritten = BitRep.lameEncode(lameGlobal, channelOneBuffer: channelOne, channelTwoBuffer: channel2, sampleSize: sampleSize, mp3Buffer: mp3Pointer, mp3BufferCount: mp3Buffer.count)
+
 		try validateBytesWritten(bytesWritten)
 
 		return Data(bytes: mp3Pointer, count: Int(bytesWritten))
@@ -162,3 +163,38 @@ class SwiftIsNotLame {
 		case mp3InternalError(code: Int32)
 	}
 }
+
+protocol PCMBitRepresentation {
+	static func lameEncode(_ lame: lame_t!, channelOneBuffer: UnsafePointer<Self>, channelTwoBuffer: UnsafePointer<Self>, sampleSize: Int, mp3Buffer: UnsafeMutablePointer<UInt8>, mp3BufferCount: Int) -> Int32
+}
+
+extension Int16: PCMBitRepresentation {
+	static func lameEncode(_ lame: lame_t!, channelOneBuffer: UnsafePointer<Int16>, channelTwoBuffer: UnsafePointer<Int16>, sampleSize: Int, mp3Buffer: UnsafeMutablePointer<UInt8>, mp3BufferCount: Int) -> Int32 {
+		lame_encode_buffer(lame, channelOneBuffer, channelTwoBuffer, Int32(sampleSize), mp3Buffer, Int32(mp3BufferCount))
+	}
+}
+
+extension Int32: PCMBitRepresentation {
+	static func lameEncode(_ lame: lame_t!, channelOneBuffer: UnsafePointer<Int32>, channelTwoBuffer: UnsafePointer<Int32>, sampleSize: Int, mp3Buffer: UnsafeMutablePointer<UInt8>, mp3BufferCount: Int) -> Int32 {
+		lame_encode_buffer_int(lame, channelOneBuffer, channelTwoBuffer, Int32(sampleSize), mp3Buffer, Int32(mp3BufferCount))
+	}
+}
+
+extension Int: PCMBitRepresentation {
+	static func lameEncode(_ lame: lame_t!, channelOneBuffer: UnsafePointer<Int>, channelTwoBuffer: UnsafePointer<Int>, sampleSize: Int, mp3Buffer: UnsafeMutablePointer<UInt8>, mp3BufferCount: Int) -> Int32 {
+		lame_encode_buffer_long(lame, channelOneBuffer, channelTwoBuffer, Int32(sampleSize), mp3Buffer, Int32(mp3BufferCount))
+	}
+}
+
+extension Float: PCMBitRepresentation {
+	static func lameEncode(_ lame: lame_t!, channelOneBuffer: UnsafePointer<Float>, channelTwoBuffer: UnsafePointer<Float>, sampleSize: Int, mp3Buffer: UnsafeMutablePointer<UInt8>, mp3BufferCount: Int) -> Int32 {
+		lame_encode_buffer_float(lame, channelOneBuffer, channelTwoBuffer, Int32(sampleSize), mp3Buffer, Int32(mp3BufferCount))
+	}
+}
+
+extension Double: PCMBitRepresentation {
+	static func lameEncode(_ lame: lame_t!, channelOneBuffer: UnsafePointer<Double>, channelTwoBuffer: UnsafePointer<Double>, sampleSize: Int, mp3Buffer: UnsafeMutablePointer<UInt8>, mp3BufferCount: Int) -> Int32 {
+		lame_encode_buffer_ieee_double(lame, channelOneBuffer, channelTwoBuffer, Int32(sampleSize), mp3Buffer, Int32(mp3BufferCount))
+	}
+}
+
