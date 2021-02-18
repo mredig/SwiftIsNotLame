@@ -46,7 +46,10 @@ while remainingSamples > 0 {
 	let channelOne = fourforty.baseAddress?.advanced(by: usedSamples)
 	let channelTwo = fiveforty.baseAddress?.advanced(by: usedSamples)
 
-	mp3Data += try notLame.encodeChunk(channelOne: channelOne, channelTwo: channelTwo, sampleSize: maxSampleSize)
+	let channelOneBuff = UnsafeBufferPointer(start: channelOne, count: maxSampleSize)
+	let channelTwoBuff = UnsafeBufferPointer(start: channelTwo, count: maxSampleSize)
+
+	mp3Data += try notLame.encodeChunk(channelOne: channelOneBuff, channelTwo: channelTwoBuff)
 
 	remainingSamples -= maxSampleSize
 	usedSamples += maxSampleSize

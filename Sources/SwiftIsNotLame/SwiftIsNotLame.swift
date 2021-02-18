@@ -103,7 +103,7 @@ public class SwiftIsNotLame {
 		return Data(bytes: _mp3Buffer.baseAddress!, count: Int(bytesWritten))
 	}
 
-	public func encodeChunk<BitRep: PCMBitRepresentation>(channelOne: UnsafePointer<BitRep>!, channelTwo: UnsafePointer<BitRep>? = nil, sampleSize: Int, mp3Buffer: UnsafeMutableBufferPointer<UInt8>? = nil) throws -> Data {
+	public func encodeChunk<BitRep: PCMBitRepresentation>(channelOne: UnsafeBufferPointer<BitRep>!, channelTwo: UnsafeBufferPointer<BitRep>? = nil, mp3Buffer: UnsafeMutableBufferPointer<UInt8>? = nil) throws -> Data {
 		let mp3Buffer = mp3Buffer ?? _mp3Buffer
 
 		guard let mp3Pointer = mp3Buffer.baseAddress else {
@@ -116,7 +116,7 @@ public class SwiftIsNotLame {
 
 		let channel2 = channelTwo ?? channelOne
 
-		let bytesWritten = BitRep.lameEncode(lameGlobal, channelOneBuffer: channelOne, channelTwoBuffer: channel2, sampleSize: sampleSize, mp3Buffer: mp3Pointer, mp3BufferCount: mp3Buffer.count)
+		let bytesWritten = BitRep.lameEncode(lameGlobal, channelOneBuffer: channelOne.baseAddress, channelTwoBuffer: channel2.baseAddress, sampleSize: channelOne.count, mp3Buffer: mp3Pointer, mp3BufferCount: mp3Buffer.count)
 
 		try validateBytesWritten(bytesWritten)
 
