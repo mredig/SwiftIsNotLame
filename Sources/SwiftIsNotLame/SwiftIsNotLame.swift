@@ -67,6 +67,7 @@ public class SwiftIsNotLame {
 		}
 
 		lame_set_debugf(lameGlobal) { format, args in
+			guard ProcessInfo.processInfo.environment["DEBUG_PRINT"] == "TRUE" else { return }
 			SwiftIsNotLame.logFromLame(format, args, source: "Debug")
 		}
 
