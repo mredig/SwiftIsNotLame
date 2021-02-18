@@ -103,11 +103,15 @@ public class SwiftIsNotLame {
 		return Data(bytes: _mp3Buffer.baseAddress!, count: Int(bytesWritten))
 	}
 
-	public func encodeChunk<BitRep: PCMBitRepresentation>(channelOne: UnsafePointer<BitRep>, channelTwo: UnsafePointer<BitRep>? = nil, sampleSize: Int, mp3Buffer: UnsafeMutableBufferPointer<UInt8>? = nil) throws -> Data {
+	public func encodeChunk<BitRep: PCMBitRepresentation>(channelOne: UnsafePointer<BitRep>!, channelTwo: UnsafePointer<BitRep>? = nil, sampleSize: Int, mp3Buffer: UnsafeMutableBufferPointer<UInt8>? = nil) throws -> Data {
 		let mp3Buffer = mp3Buffer ?? _mp3Buffer
 
 		guard let mp3Pointer = mp3Buffer.baseAddress else {
 			throw LameError.improperlyFormattedMp3Buffer
+		}
+
+		guard let channelOne = channelOne else {
+			throw LameError.noBufferInput
 		}
 
 		let channel2 = channelTwo ?? channelOne
@@ -163,6 +167,7 @@ public class SwiftIsNotLame {
 	enum LameError: Error {
 		case improperlyFormattedMp3Buffer
 		case mp3BufferTooSmall
+		case noBufferInput
 		case mp3InternalError(code: Int32)
 	}
 }
