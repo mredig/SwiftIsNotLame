@@ -27,15 +27,19 @@ func generateTone(hz: CGFloat) -> [Int16] {
 	}
 }
 
-let fourforty = Array(repeating: generateTone(hz: 440), count: 10)
-	.flatMap { $0 }
 
-let fiveforty = Array(repeating: generateTone(hz: 540), count: 10)
-	.flatMap { $0 }
+let lampLeftRaw = try Data(contentsOf: URL(fileURLWithPath: "/Users/mredig/Swap/lampshades left.raw"))
+let lampRightRaw = try Data(contentsOf: URL(fileURLWithPath: "/Users/mredig/Swap/lampshades right.raw"))
 
-let c1Buff = fourforty.withUnsafeBufferPointer { $0 }
-let c2Buff = fiveforty.withUnsafeBufferPointer { $0 }
-var mp3Data = notLame.encodeAudio(c1Buff, c2Buff)
+let c1 = lampLeftRaw.withUnsafeBytes {
+	$0.bindMemory(to: Int16.self)
+}
+
+let c2 = lampRightRaw.withUnsafeBytes {
+	$0.bindMemory(to: Int16.self)
+}
+
+var mp3Data = notLame.encodeAudio(c1, c2)
 
 let mp3Finisher = try notLame.finishEncoding()
 
