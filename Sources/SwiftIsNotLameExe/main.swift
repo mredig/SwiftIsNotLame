@@ -28,11 +28,9 @@ func generateTone(hz: CGFloat) -> [Int16] {
 
 let fourforty = Array(repeating: generateTone(hz: 440), count: 10)
 	.flatMap { $0 }
-	.withUnsafeBufferPointer { $0 }
 
 let fiveforty = Array(repeating: generateTone(hz: 540), count: 10)
 	.flatMap { $0 }
-	.withUnsafeBufferPointer { $0 }
 
 
 var remainingSamples = fourforty.count
@@ -42,26 +40,29 @@ var maxSampleSize = Int(lame_get_maximum_number_of_samples(notLame.lameGlobal, n
 
 var mp3Data = Data()
 
-while remainingSamples > 0 {
-	let channelOne = fourforty.baseAddress?.advanced(by: usedSamples)
-	let channelTwo = fiveforty.baseAddress?.advanced(by: usedSamples)
+func strideHandler(index: Int, sampleCount: Int) throws {
+	let channelOne = fourforty[(index * maxSampleSize)..<sampleCount]
+		.withUnsafeBufferPointer { $0 }
+	let channelTwo = fiveforty[(index * maxSampleSize)..<sampleCount]
+		.withUnsafeBufferPointer { $0 }
 
-	let channelOneBuff = UnsafeBufferPointer(start: channelOne, count: maxSampleSize)
-	let channelTwoBuff = UnsafeBufferPointer(start: channelTwo, count: maxSampleSize)
-
-	mp3Data += try notLame.encodeChunk(channelOne: channelOneBuff, channelTwo: channelTwoBuff)
-
-	remainingSamples -= maxSampleSize
-	usedSamples += maxSampleSize
-
-	if remainingSamples < maxSampleSize {
-		maxSampleSize = remainingSamples
-	}
+	mp3Data += try notLame.encodeChunk(channelOne: channelOne, channelTwo: channelTwo)
 }
 
+for (index, samples) in stride(from: maxSampleSize, to: fourforty.count, by: maxSampleSize).enumerated() {
+	try strideHandler(index: index, sampleCount: samples)
+}
+
+let leftoverSamples = fourforty.count % maxSampleSize
+if leftoverSamples > 0 {
+	let index = fourforty.count / maxSampleSize
+	try strideHandler(index: index, sampleCount: fourforty.count)
+}
 
 let mp3Finisher = try notLame.finishEncoding()
 
 mp3Data += mp3Finisher
 
 try mp3Data.write(to: URL(fileURLWithPath: "/Users/mredig/Swap/not lame.mp3"))
+
+print("output finished")

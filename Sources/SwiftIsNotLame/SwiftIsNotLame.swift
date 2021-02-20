@@ -168,6 +168,7 @@ public class SwiftIsNotLame {
 	enum LameError: Error {
 		case improperlyFormattedMp3Buffer
 		case mp3BufferTooSmall
+		case mismatchedChannelSamplesProvided
 		case noBufferInput
 		case mp3InternalError(code: Int32)
 	}
