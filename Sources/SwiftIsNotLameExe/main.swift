@@ -18,10 +18,11 @@ func generateTone(hz: CGFloat) -> [Int16] {
 
 		let freq = sinHz * normalizePeriodValue
 
-		let x: CGFloat = CGFloat(x) / sampleRate
+		let xVal: CGFloat = CGFloat(x) / sampleRate
 
-		let y = sin(x * freq)
+		let y = sin(xVal * freq)
 		let y2 = y * CGFloat(Int16.max)
+//		guard x != (sampleSize - 1) else { return Int16.max }
 		return Int16(y2)
 	}
 }
@@ -36,7 +37,7 @@ let fiveforty = Array(repeating: generateTone(hz: 540), count: 10)
 var remainingSamples = fourforty.count
 var usedSamples = 0
 
-var maxSampleSize = Int(lame_get_maximum_number_of_samples(notLame.lameGlobal, notLame.defaultMp3Buffer.count))
+var maxSampleSize = Int(lame_get_maximum_number_of_samples(notLame.lameGlobal, notLame.defaultMp3Buffer.count)) / 2
 
 var mp3Data = Data()
 
