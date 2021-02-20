@@ -39,7 +39,8 @@ let c2 = lampRightRaw.withUnsafeBytes {
 	$0.bindMemory(to: Int16.self)
 }
 
-var mp3Data = notLame.encodeAudio(c1, c2)
+
+var mp3Data = try notLame.encodeAudio(c1, c2)
 
 let mp3Finisher = try notLame.finishEncoding()
 

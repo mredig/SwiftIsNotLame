@@ -41,7 +41,7 @@ public class SwiftIsNotLame {
 		case CBR(rate: Int32)
 		case VBR(rate: Int32)
 	}
-	public var bitRate = Bitrate.CBR(rate: 256) {
+	public var bitRate = Bitrate.CBR(rate: 128) {
 		didSet { validateBitrate() }
 	}
 
@@ -49,19 +49,18 @@ public class SwiftIsNotLame {
 		didSet { validateQuality() }
 	}
 
-	private var _mp3Buffer: UnsafeMutableBufferPointer<UInt8> = {
-		let mp3BufferSize = Int(1.25 * 1152 + 7200) + 1
+	private var _mp3Buffer: UnsafeMutableBufferPointer<UInt8>
+
+	public var defaultMp3Buffer: UnsafeBufferPointer<UInt8> { UnsafeBufferPointer(_mp3Buffer) }
+
+	public init(mp3BufferSize: Int = 8641) {
 		let pointer = UnsafeMutableRawPointer.allocate(
 			byteCount: mp3BufferSize,
 			alignment: MemoryLayout<UInt8>.alignment)
 			.bindMemory(to: UInt8.self, capacity: mp3BufferSize)
 
-		return UnsafeMutableBufferPointer(start: pointer, count: mp3BufferSize)
-	}()
+		_mp3Buffer = UnsafeMutableBufferPointer(start: pointer, count: mp3BufferSize)
 
-	public var defaultMp3Buffer: UnsafeBufferPointer<UInt8> { UnsafeBufferPointer(_mp3Buffer) }
-
-	public init() {
 		lame_set_errorf(lameGlobal) { format, args in
 			SwiftIsNotLame.logFromLame(format, args, source: "Error")
 		}
@@ -76,10 +75,15 @@ public class SwiftIsNotLame {
 		}
 	}
 
+	deinit {
+		_mp3Buffer.deallocate()
+		lame_close(lameGlobal)
+	}
+
 	// MARK: - Layer 1
 	/// still needs `prepareForEncoding` called before and `finishEncoding` called afterwards, as well as concatenation of returned data
 	/// takes entire channels for input and chunks them up to feed to `encodeChunk` in a loop
-	public func encodeAudio<BitRep: PCMBitRepresentation>(_ rawChannelOne: UnsafeBufferPointer<BitRep>, _ rawChannelTwo: UnsafeBufferPointer<BitRep>?) -> Data {
+	public func encodeAudio<BitRep: PCMBitRepresentation>(_ rawChannelOne: UnsafeBufferPointer<BitRep>, _ rawChannelTwo: UnsafeBufferPointer<BitRep>?) throws -> Data {
 		let maxSampleSize = Int(lame_get_maximum_number_of_samples(lameGlobal, defaultMp3Buffer.count)) / 2
 
 		var mp3Data = Data()
@@ -98,14 +102,7 @@ public class SwiftIsNotLame {
 				return UnsafeBufferPointer<BitRep>(rebasing: c2)
 			}
 
-			do {
-				mp3Data += try encodeChunk(channelOne: channelOneBuffer, channelTwo: channelTwoBuffer)
-			} catch SwiftIsNotLame.LameError.mp3BufferTooSmall {
-				fatalError("buffer too small: \(maxSampleSize) try again")
-				continue
-			} catch {
-				fatalError("Error encoding chunk: \(error)")
-			}
+			mp3Data += try encodeChunk(channelOne: channelOneBuffer, channelTwo: channelTwoBuffer)
 
 			usedSamples = range.upperBound
 			remainingSamples = rawChannelOne.count - usedSamples
