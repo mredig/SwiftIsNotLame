@@ -22,7 +22,7 @@ func generateTone(hz: CGFloat) -> [Int16] {
 
 		let y = sin(xVal * freq)
 		let y2 = y * CGFloat(Int16.max)
-//		guard x != (sampleSize - 1) else { return Int16.max }
+		guard x != (sampleSize - 1) else { return Int16.max }
 		return Int16(y2)
 	}
 }
