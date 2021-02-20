@@ -76,6 +76,45 @@ public class SwiftIsNotLame {
 		}
 	}
 
+	// MARK: - Layer 1
+	/// still needs `prepareForEncoding` called before and `finishEncoding` called afterwards, as well as concatenation of returned data
+	/// takes entire channels for input and chunks them up to feed to `encodeChunk` in a loop
+	public func encodeAudio<BitRep: PCMBitRepresentation>(_ rawChannelOne: UnsafeBufferPointer<BitRep>, _ rawChannelTwo: UnsafeBufferPointer<BitRep>?) -> Data {
+		var maxSampleSize = Int(lame_get_maximum_number_of_samples(lameGlobal, defaultMp3Buffer.count)) / 2
+
+		var mp3Data = Data()
+
+		var remainingSamples = rawChannelOne.count
+		var usedSamples = 0
+
+		while remainingSamples > 0 {
+			let endIndexAddend = min(maxSampleSize, remainingSamples)
+			let range = usedSamples..<(usedSamples + endIndexAddend)
+
+			let c1 = rawChannelOne[range]
+			let channelOneBuffer = UnsafeBufferPointer<BitRep>(rebasing: c1)
+			let channelTwoBuffer: UnsafeBufferPointer<BitRep>? = rawChannelTwo.map { (buff: UnsafeBufferPointer<BitRep>) in
+				let c2 = buff[range]
+				return UnsafeBufferPointer<BitRep>(rebasing: c2)
+			}
+
+			do {
+				mp3Data += try encodeChunk(channelOne: channelOneBuffer, channelTwo: channelTwoBuffer)
+			} catch SwiftIsNotLame.LameError.mp3BufferTooSmall {
+				maxSampleSize = Int(CGFloat(maxSampleSize) * 0.8)
+				continue
+			} catch {
+				fatalError("Error encoding chunk: \(error)")
+			}
+
+			usedSamples = range.upperBound
+			remainingSamples = rawChannelOne.count - usedSamples
+		}
+
+		return mp3Data
+	}
+
+	// MARK: - Layer 0
 	public func prepareForEncoding() {
 		lame_set_num_channels(lameGlobal, channels.rawValue)
 		lame_set_in_samplerate(lameGlobal, sampleRate.rawValue)
@@ -165,7 +204,7 @@ public class SwiftIsNotLame {
 		print(formatted)
 	}
 
-	enum LameError: Error {
+	public enum LameError: Error {
 		case improperlyFormattedMp3Buffer
 		case mp3BufferTooSmall
 		case mismatchedChannelSamplesProvided
