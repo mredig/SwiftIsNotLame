@@ -80,7 +80,7 @@ public class SwiftIsNotLame {
 	/// still needs `prepareForEncoding` called before and `finishEncoding` called afterwards, as well as concatenation of returned data
 	/// takes entire channels for input and chunks them up to feed to `encodeChunk` in a loop
 	public func encodeAudio<BitRep: PCMBitRepresentation>(_ rawChannelOne: UnsafeBufferPointer<BitRep>, _ rawChannelTwo: UnsafeBufferPointer<BitRep>?) -> Data {
-		var maxSampleSize = Int(lame_get_maximum_number_of_samples(lameGlobal, defaultMp3Buffer.count)) / 2
+		let maxSampleSize = Int(lame_get_maximum_number_of_samples(lameGlobal, defaultMp3Buffer.count)) / 2
 
 		var mp3Data = Data()
 
@@ -101,7 +101,7 @@ public class SwiftIsNotLame {
 			do {
 				mp3Data += try encodeChunk(channelOne: channelOneBuffer, channelTwo: channelTwoBuffer)
 			} catch SwiftIsNotLame.LameError.mp3BufferTooSmall {
-				maxSampleSize = Int(CGFloat(maxSampleSize) * 0.8)
+				fatalError("buffer too small: \(maxSampleSize) try again")
 				continue
 			} catch {
 				fatalError("Error encoding chunk: \(error)")

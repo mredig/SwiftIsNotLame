@@ -33,56 +33,6 @@ let fourforty = Array(repeating: generateTone(hz: 440), count: 10)
 let fiveforty = Array(repeating: generateTone(hz: 540), count: 10)
 	.flatMap { $0 }
 
-
-//var remainingSamples = fourforty.count
-//var usedSamples = 0
-//
-//var maxSampleSize = Int(lame_get_maximum_number_of_samples(notLame.lameGlobal, notLame.defaultMp3Buffer.count)) / 2
-//
-//var mp3Data = Data()
-//
-//while remainingSamples > 0 {
-//	let endIndexAddend = min(maxSampleSize, remainingSamples)
-//	let range = usedSamples..<(usedSamples + endIndexAddend)
-//
-//	let channelOne = fourforty[range]
-//		.withUnsafeBufferPointer { $0 }
-//	let channelTwo = fiveforty[range]
-//		.withUnsafeBufferPointer { $0 }
-//
-//	let count = mp3Data.count
-//	do {
-//		mp3Data += try notLame.encodeChunk(channelOne: channelOne, channelTwo: channelTwo)
-//	} catch SwiftIsNotLame.LameError.mp3BufferTooSmall {
-//		maxSampleSize = Int(CGFloat(maxSampleSize) * 0.8)
-//		print(mp3Data.count == count)
-//		continue
-//	} catch {
-//		fatalError("Error encoding chunk: \(error)")
-//	}
-//
-//	usedSamples = range.upperBound
-//	remainingSamples = fourforty.count - usedSamples
-//}
-
-//func strideHandler(index: Int, sampleCount: Int) throws {
-//	let channelOne = fourforty[(index * maxSampleSize)..<sampleCount]
-//		.withUnsafeBufferPointer { $0 }
-//	let channelTwo = fiveforty[(index * maxSampleSize)..<sampleCount]
-//		.withUnsafeBufferPointer { $0 }
-//
-//	mp3Data += try notLame.encodeChunk(channelOne: channelOne, channelTwo: channelTwo)
-//}
-//
-//for (index, samples) in stride(from: maxSampleSize, to: fourforty.count, by: maxSampleSize).enumerated() {
-//	try strideHandler(index: index, sampleCount: samples)
-//}
-//
-//let leftoverSamples = fourforty.count % maxSampleSize
-//if leftoverSamples > 0 {
-//	let index = fourforty.count / maxSampleSize
-//	try strideHandler(index: index, sampleCount: fourforty.count)
-//}
 let c1Buff = fourforty.withUnsafeBufferPointer { $0 }
 let c2Buff = fiveforty.withUnsafeBufferPointer { $0 }
 var mp3Data = notLame.encodeAudio(c1Buff, c2Buff)
