@@ -130,6 +130,8 @@ public class SwiftIsNotLame {
 	public func encodeAudio<BitRep: PCMBitRepresentation>(_ rawChannelOne: UnsafeBufferPointer<BitRep>, _ rawChannelTwo: UnsafeBufferPointer<BitRep>?) throws -> Data {
 		let maxSampleSize = Int(lame_get_maximum_number_of_samples(lameGlobal, defaultMp3Buffer.count)) / 2
 
+//		lame_get_framesize // alternative (preferred?) sample size determination
+
 		var mp3Data = Data()
 
 		var remainingSamples = rawChannelOne.count
@@ -157,6 +159,8 @@ public class SwiftIsNotLame {
 
 	// MARK: - Layer 0
 	public func prepareForEncoding() {
+		// look into `lame_set_write_id3tag_automatic` like used in lame_main.c
+
 		lame_set_num_channels(lameGlobal, channels.rawValue)
 		lame_set_in_samplerate(lameGlobal, sampleRate.rawValue)
 		lame_set_mode(lameGlobal, mode.rawValue)
