@@ -20,16 +20,40 @@ public class WavFile {
 	public private(set) var channels: Int?
 	public private(set) var samplesPerSecond: Int?
 	public private(set) var bitsPerSample: Int?
+	public var bytesPerSample: Int? { bitsPerSample.map { $0 / 8} }
 	public private(set) var totalSamples: Int?
-
-	public var channelBuffer16: [[Int16]] { [] }
-	public var channelBuffer32: [[Int32]] { [] }
-	public var channelBuffer64: [[Int64]] { [] }
-	public var channelBufferFloat: [[Float]] { [] }
-	public var channelBufferDouble: [[Double]] { [] }
 
 	public init(sourceData: Data) {
 		self.sourceData = sourceData
+	}
+
+	/// Channel value is 0 indexed - if there are two channels, channel 0 and channel 1 are valid values.
+	public func sample<BitRep: FixedWidthInteger>(at offset: Int, channel: Int) throws -> BitRep {
+		let startOffset = pointerOffset
+		defer { pointerOffset = startOffset }
+
+		guard
+			let channels = channels,
+			channel < channels
+		else { throw WavError.genericError("Requested sample for channel that doesnt exist") }
+
+		let totalOffsetFromDataPointer = sampleDataPointerOffsetStart + (offset * channels * bytesPerSample!) + (bytesPerSample! * channel)
+
+		return try read(single: BitRep.self, byteOrder: .littleEndian, startingAt: totalOffsetFromDataPointer)
+	}
+
+	/// Channel value is 0 indexed - if there are two channels, channel 0 and channel 1 are valid values.
+	public func channelBuffer<BitRep: FixedWidthInteger>(channel: Int) throws -> ContiguousArray<BitRep> {
+		guard let totalSamples = totalSamples else { return [] }
+//		let is24Bit = bitsPerSample == 24
+
+		var channelBuffer = ContiguousArray<BitRep>(unsafeUninitializedCapacity: totalSamples) { _, _ in }
+		for sampleIndex in (0..<totalSamples) {
+			let thisSample: BitRep = try sample(at: sampleIndex, channel: channel)
+			channelBuffer.append(thisSample)
+		}
+
+		return channelBuffer
 	}
 
 	public func decode() throws {
@@ -138,6 +162,7 @@ public class WavFile {
 		case notWavFile
 		case corruptWavFile(_ description: String?)
 		case notSupported(_ description: String?)
+		case genericError(_ description: String?)
 		case unknown
 	}
 }
