@@ -1,10 +1,10 @@
 import Foundation
 
 public class WavFile {
-	static let wavMagic = "RIFF".toMagicNumber()
-	static let wavIDFmt = "fmt ".toMagicNumber()
-	static let wavIDWave = "WAVE".toMagicNumber()
-	static let wavIDData = "data".toMagicNumber()
+	static let wavMagic = try! "RIFF".toMagicNumber()
+	static let wavIDFmt = try! "fmt ".toMagicNumber()
+	static let wavIDWave = try! "WAVE".toMagicNumber()
+	static let wavIDData = try! "data".toMagicNumber()
 	static let wavExtesible: UInt16 = 0xFFFE
 	static let wavFormatPCM: UInt16 = 0x01
 	static let wavFormatIEEEFloat: UInt16 = 0x03
@@ -22,6 +22,12 @@ public class WavFile {
 	public private(set) var bitsPerSample: Int?
 	public private(set) var totalSamples: Int?
 
+	public var channelBuffer16: [[Int16]] { [] }
+	public var channelBuffer32: [[Int32]] { [] }
+	public var channelBuffer64: [[Int64]] { [] }
+	public var channelBufferFloat: [[Float]] { [] }
+	public var channelBufferDouble: [[Double]] { [] }
+
 	public init(sourceData: Data) {
 		self.sourceData = sourceData
 	}
@@ -36,7 +42,7 @@ public class WavFile {
 		guard wavId == Self.wavIDWave else { throw WavError.corruptWavFile("No WAVE id chunk") }
 
 		let loopSanity = 20
-		for _ in 0..<loopSanity {
+		loop: for _ in 0..<loopSanity {
 			let chunkType = try read(4).convertedToU32()
 
 			switch chunkType {
@@ -46,6 +52,7 @@ public class WavFile {
 				let size = try read(4, byteOrder: .littleEndian).convertedToU32()
 				self.totalSampleSize = Int(size)
 				self.sampleDataPointerOffsetStart = pointerOffset
+				break loop
 			default:
 				let size = try read(4, byteOrder: .littleEndian)
 					.convertedToU32()
@@ -59,7 +66,7 @@ public class WavFile {
 			let bitsPerSample = bitsPerSample
 		else { throw WavError.unknown }
 
-		totalSamples = totalSampleSize / channels * (bitsPerSample / 8)
+		totalSamples = totalSampleSize / (channels * (bitsPerSample / 8))
 		print("here")
 	}
 
@@ -79,7 +86,8 @@ public class WavFile {
 			[Self.wavFormatPCM].contains(formatTag)
 		else { throw WavError.notSupported("Only support PCM Wave format") }
 
-		let channels = try read(2, byteOrder: .littleEndian).converted(to: UInt16.self)
+//		let channels = try read(2, byteOrder: .littleEndian).converted(to: UInt16.self)
+		let channels = try read(single: UInt16.self, byteOrder: .littleEndian)
 		self.channels = Int(channels)
 		sizeRemaining -= 2
 
@@ -118,6 +126,12 @@ public class WavFile {
 		case .littleEndian:
 			return bytes.reversed()
 		}
+	}
+
+	private func read<BitRep: FixedWidthInteger>(single type: BitRep.Type, byteOrder: ByteOrder = .bigEndian, startingAt offset: Int? = nil) throws -> BitRep {
+		let size = MemoryLayout<BitRep>.size
+		return try read(size, byteOrder: byteOrder, startingAt: offset)
+			.converted(to: BitRep.self)
 	}
 
 	enum WavError: Error {
