@@ -37,9 +37,53 @@ public class SwiftIsNotLame {
 	}
 	public var mode = Mode.jointStereo
 
+	/*
+	add id3 tags (looks like it happens during/before prep stage)
+
+	look for `--tt <title>    audio/song title (max 30 chars for version 1 tag)` related info in parse.c
+	*/
+
+	/*
+	notes for future bitrate management
+	from parse.c
+
+	lame_set_VBR(gfp, vbr_mtrh);
+	lame_set_VBR(gfp, vbr_off);
+	case 'b':
+		argUsed = getIntValue("b", arg, &int_value);
+		if (argUsed) {
+			lame_set_brate(gfp, int_value);
+			lame_set_VBR_min_bitrate_kbps(gfp, lame_get_brate(gfp));
+		}
+		break;
+	case 'B':
+		argUsed = getIntValue("B", arg, &int_value);
+		if (argUsed) {
+			lame_set_VBR_max_bitrate_kbps(gfp, int_value);
+		}
+		break;
+
+	// add ABR
+		T_ELIF("abr")
+			/* values larger than 8000 are bps (like Fraunhofer), so it's strange to get 320000 bps MP3 when specifying 8000 bps MP3 */
+			argUsed = getIntValue(token, nextArg, &int_value);
+			if (argUsed) {
+				if (int_value >= 8000) {
+					int_value = (int_value + 500) / 1000;
+				}
+				if (int_value > 320) {
+					int_value = 320;
+				}
+				if (int_value < 8) {
+					int_value = 8;
+				}
+				lame_set_VBR(gfp, vbr_abr);
+				lame_set_VBR_mean_bitrate_kbps(gfp, int_value);
+			}
+	*/
 	public enum Bitrate {
 		case CBR(rate: Int32)
-		case VBR(rate: Int32)
+		case VBR(rate: Int32) // set min and max
 	}
 	public var bitRate = Bitrate.CBR(rate: 128) {
 		didSet { validateBitrate() }
