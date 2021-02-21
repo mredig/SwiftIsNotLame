@@ -128,9 +128,10 @@ public class SwiftIsNotLame {
 	/// still needs `prepareForEncoding` called before and `finishEncoding` called afterwards, as well as concatenation of returned data
 	/// takes entire channels for input and chunks them up to feed to `encodeChunk` in a loop
 	public func encodeAudio<BitRep: PCMBitRepresentation>(_ rawChannelOne: UnsafeBufferPointer<BitRep>, _ rawChannelTwo: UnsafeBufferPointer<BitRep>?) throws -> Data {
-		let maxSampleSize = Int(lame_get_maximum_number_of_samples(lameGlobal, defaultMp3Buffer.count)) / 2
-
+		let maxSamples = lame_get_maximum_number_of_samples(lameGlobal, defaultMp3Buffer.count) / 2
 //		lame_get_framesize // alternative (preferred?) sample size determination
+		let frameSize = lame_get_framesize(lameGlobal)
+		let maxSampleSize = Int(min(maxSamples, frameSize))
 
 		var mp3Data = Data()
 
