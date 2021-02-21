@@ -16,10 +16,11 @@ public class WavFile {
 	private var totalSampleSize = 0
 	private var sampleDataPointerOffsetStart = 0
 
-	public var format: UInt16?
-	public var channels: Int?
-	public var samplesPerSecond: Int?
-	public var bitsPerSample: Int?
+	public private(set) var format: UInt16?
+	public private(set) var channels: Int?
+	public private(set) var samplesPerSecond: Int?
+	public private(set) var bitsPerSample: Int?
+	public private(set) var totalSamples: Int?
 
 	public init(sourceData: Data) {
 		self.sourceData = sourceData
@@ -53,7 +54,12 @@ public class WavFile {
 			}
 		}
 
-		let totalSamples = totalSampleSize / channels * (bitsPerSample / 8)
+		guard
+			let channels = channels,
+			let bitsPerSample = bitsPerSample
+		else { throw WavError.unknown }
+
+		totalSamples = totalSampleSize / channels * (bitsPerSample / 8)
 		print("here")
 	}
 
@@ -118,6 +124,7 @@ public class WavFile {
 		case notWavFile
 		case corruptWavFile(_ description: String?)
 		case notSupported(_ description: String?)
+		case unknown
 	}
 }
 
