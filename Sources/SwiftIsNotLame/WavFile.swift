@@ -11,7 +11,10 @@ public class WavFile {
 
 	let sourceData: Data
 
-	private var pointerOffset: Int = 0
+	private var pointerOffset = 0
+
+	private var totalSampleSize = 0
+	private var sampleDataPointerOffsetStart = 0
 
 	public var format: UInt16?
 	public var channels: Int?
@@ -39,7 +42,9 @@ public class WavFile {
 			case Self.wavIDFmt:
 				try readFMTChunk()
 			case Self.wavIDData:
-				break
+				let size = try read(4, byteOrder: .littleEndian).convertedToU32()
+				self.totalSampleSize = Int(size)
+				self.sampleDataPointerOffsetStart = pointerOffset
 			default:
 				let size = try read(4, byteOrder: .littleEndian)
 					.convertedToU32()
@@ -47,6 +52,8 @@ public class WavFile {
 				pointerOffset += Int(size)
 			}
 		}
+
+		let totalSamples = totalSampleSize / channels * (bitsPerSample / 8)
 		print("here")
 	}
 
@@ -81,7 +88,9 @@ public class WavFile {
 		let bitsPerSample = try read(2, byteOrder: .littleEndian).converted(to: UInt16.self)
 		self.bitsPerSample = Int(bitsPerSample)
 		sizeRemaining -= 2
-
+		guard
+			bitsPerSample.isMultiple(of: 8)
+		else { throw WavError.corruptWavFile("Bits per sample is not divisible by 8") }
 	}
 
 	// MARK: - Generic byte reading
