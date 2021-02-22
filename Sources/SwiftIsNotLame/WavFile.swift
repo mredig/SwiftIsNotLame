@@ -117,7 +117,6 @@ public class WavFile {
 			[Self.wavFormatPCM].contains(formatTag)
 		else { throw WavError.notSupported("Only support PCM Wave format") }
 
-//		let channels = try read(2, byteOrder: .littleEndian).converted(to: UInt16.self)
 		let channels = try read(single: UInt16.self, byteOrder: .littleEndian)
 		self.channels = Int(channels)
 		sizeRemaining -= 2
@@ -182,17 +181,16 @@ extension FixedWidthInteger {
 	func convert24bitTo32() throws -> Self {
 		guard type(of: self) == Int32.self else { throw ConversionError.not32bit }
 
-		var bit24 = self << 8
-		bit24 = bit24 >> 8
+		var bit24 = UInt32(self) & 0xFF_FF_FF
 
-		let int24Sign: Self = 0x80_00_00
+		let int24Sign: UInt32 = 0x80_00_00
 		let signed = (int24Sign & bit24) == int24Sign
 
 		if signed {
 			bit24 = bit24 | 0xFF_00_00_00
 		}
 
-		var double = Double(bit24)
+		var double = Double(Int32(bitPattern: bit24))
 		double *= Double(Int32.max) / Double(0x7FFFFF)
 
 		return Self(double)
@@ -249,5 +247,22 @@ extension FixedWidthInteger {
 
 	mutating func makeEven() {
 		self = madeEven()
+	}
+
+	func toBin() -> String {
+		let byteCount = MemoryLayout<Self>.size
+		let bytes = (0..<byteCount)
+			.map { 0xff & (self >> (8 * $0)) }
+			.map { UInt8($0) }
+			.reversed()
+		let strings = bytes
+			.map { String($0, radix: 2) }
+			.map { (string: String) -> String in
+				let diff = 8 - string.count
+				let zeros = String(repeating: "0", count: diff)
+				return zeros + string
+			}
+			.joined(separator: " ")
+		return strings
 	}
 }
