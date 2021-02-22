@@ -43,10 +43,6 @@ struct SwiftIsNotLameExe: ParsableCommand {
 		stopwatch.logCheckpoint(note: "decoding wav header")
 		try testWav.processHeader()
 
-		stopwatch.logCheckpoint(note: "getting decoded Int16 array")
-		let leftChannel: [Int32] = Array(try testWav.channelBuffer(channel: 0))
-		let rightChannel: [Int32] = Array(try testWav.channelBuffer(channel: 1))
-
 		stopwatch.logCheckpoint(note: "setting up lame")
 		let notLame = SwiftIsNotLame()
 		notLame.channels = testWav.wavInfo?.channels ?? notLame.channels
@@ -56,11 +52,13 @@ struct SwiftIsNotLameExe: ParsableCommand {
 		notLame.prepareForEncoding()
 		notLame.quality = 0
 
-		let leftBuffer = leftChannel.withUnsafeBufferPointer { $0 }
-		let rightBuffer = rightChannel.withUnsafeBufferPointer { $0 }
+
+		stopwatch.logCheckpoint(note: "getting decoded Int16 array")
+		let leftChannel: [Int16] = Array(try testWav.channelBuffer(channel: 0))
+		let rightChannel: [Int16] = Array(try testWav.channelBuffer(channel: 1))
 
 		stopwatch.logCheckpoint(note: "starting mp3 encode")
-		var mp3Data = try notLame.encodeAudio(leftBuffer, rightBuffer)
+		var mp3Data = try notLame.encodeAudio(leftChannel, rightChannel)
 
 		mp3Data += try notLame.finishEncoding()
 

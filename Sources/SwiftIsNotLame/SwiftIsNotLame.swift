@@ -136,6 +136,14 @@ public class SwiftIsNotLame {
 		lame_close(lameGlobal)
 	}
 
+	// MARK: - Layer 2
+	public func encodeAudio<BitRep: PCMBitRepresentation>(_ rawChannelOne: [BitRep], _ rawChannelTwo: [BitRep]?) throws -> Data {
+		let buffer1 = rawChannelOne.withUnsafeBufferPointer { $0 }
+		let buffer2 = rawChannelTwo?.withUnsafeBufferPointer { $0 }
+
+		return try encodeAudio(buffer1, buffer2)
+	}
+
 	// MARK: - Layer 1
 	/// still needs `prepareForEncoding` called before and `finishEncoding` called afterwards, as well as concatenation of returned data
 	/// takes entire channels for input and chunks them up to feed to `encodeChunk` in a loop
