@@ -49,8 +49,8 @@ struct SwiftIsNotLameExe: ParsableCommand {
 
 		stopwatch.logCheckpoint(note: "setting up lame")
 		let notLame = SwiftIsNotLame()
-		notLame.channels = try .init(from: testWav.channels!)
-		notLame.sampleRate = try .init(from: testWav.samplesPerSecond!)
+		notLame.channels = testWav.wavInfo?.channels ?? notLame.channels
+		notLame.sampleRate = testWav.wavInfo?.sampleRate ?? notLame.sampleRate
 		notLame.mode = .stereo
 		notLame.bitRate = .CBR(rate: 256)
 		notLame.prepareForEncoding()

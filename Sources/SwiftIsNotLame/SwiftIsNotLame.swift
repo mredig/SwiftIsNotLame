@@ -6,12 +6,12 @@ public class SwiftIsNotLame {
 	/// probably make private
 	public let lameGlobal = lame_init()
 
-	public enum ChannelCount: Int32 {
+	public enum ChannelCount: Int {
 		case one = 1
 		case two
 
 		public init(from int: Int) throws {
-			let value = Int32(int)
+			let value = int
 			let new = ChannelCount(rawValue: value)
 			try self = new.unwrap()
 		}
@@ -174,7 +174,7 @@ public class SwiftIsNotLame {
 	public func prepareForEncoding() {
 		// look into `lame_set_write_id3tag_automatic` like used in lame_main.c
 
-		lame_set_num_channels(lameGlobal, channels.rawValue)
+		lame_set_num_channels(lameGlobal, Int32(channels.rawValue))
 		lame_set_in_samplerate(lameGlobal, sampleRate.rawValue)
 		lame_set_mode(lameGlobal, mode.rawValue)
 		lame_set_quality(lameGlobal, Int32(quality))

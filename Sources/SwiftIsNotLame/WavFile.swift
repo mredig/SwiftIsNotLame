@@ -12,16 +12,45 @@ public class WavFile {
 	let sourceData: Data
 
 	private var pointerOffset = 0
-
-	private var totalSampleSize = 0
 	private var sampleDataPointerOffsetStart = 0
 
-	public private(set) var format: UInt16?
-	public private(set) var channels: Int?
-	public private(set) var samplesPerSecond: Int?
-	public private(set) var bitsPerSample: Int?
-	public var bytesPerSample: Int? { bitsPerSample.map { $0 / 8} }
-	public private(set) var totalSamples: Int?
+	public private(set) var wavInfo: WavInfo?
+
+	public struct WavInfo {
+		public enum WavFormat {
+			case pcm
+			case float
+
+			init(from value: UInt16) throws {
+				switch value {
+				case WavFile.wavFormatPCM:
+					self = .pcm
+				case WavFile.wavFormatIEEEFloat:
+					self = .float
+				default:
+					throw WavError.notSupported("Non PCM and float wavs are unsupported")
+				}
+			}
+		}
+		public let totalSampleSize: Int
+		public let format: WavFormat
+		public let channels: SwiftIsNotLame.ChannelCount
+		public let sampleRate: SwiftIsNotLame.SampleRate
+		public let bitsPerSample: Int
+		public var bytesPerSample: Int { bitsPerSample / 8 }
+		public var totalSamples: Int {
+			totalSampleSize / (channels.rawValue * (bitsPerSample / 8)) - (bitsPerSample == 24 ? 1 : 0)
+		}
+
+		func settingTotalSampleSize(_ value: Int) -> Self {
+			return WavInfo(
+				totalSampleSize: value,
+				format: format,
+				channels: channels,
+				sampleRate: sampleRate,
+				bitsPerSample: bitsPerSample)
+		}
+	}
 
 	public init(sourceData: Data) {
 		self.sourceData = sourceData
@@ -34,19 +63,20 @@ public class WavFile {
 		defer { pointerOffset = startOffset }
 
 		guard
-			let channels = channels,
-			channel < channels
+			let info = wavInfo,
+			channel < info.channels.rawValue
 		else { throw WavError.genericError("Requested sample for channel that doesnt exist") }
 
-		let totalOffsetFromDataPointer = sampleDataPointerOffsetStart + (offset * channels * bytesPerSample!) + (bytesPerSample! * channel)
+		let totalOffsetFromDataPointer = sampleDataPointerOffsetStart + (offset * info.channels.rawValue * info.bytesPerSample) + (info.bytesPerSample * channel)
 
 		return try read(single: BitRep.self, byteOrder: .littleEndian, startingAt: totalOffsetFromDataPointer)
 	}
 
 	/// Channel value is 0 indexed - if there are two channels, channel 0 and channel 1 are valid values.
 	public func channelBuffer<BitRep: FixedWidthInteger>(channel: Int) throws -> ContiguousArray<BitRep> {
-		guard let totalSamples = totalSamples else { return [] }
-		let is24Bit = bitsPerSample == 24
+		guard let info = wavInfo else { return [] }
+		let totalSamples = info.totalSamples
+		let is24Bit = info.bitsPerSample == 24
 
 		var channelBuffer = ContiguousArray<BitRep>(unsafeUninitializedCapacity: totalSamples) { _, _ in }
 		for sampleIndex in (0..<totalSamples) {
@@ -70,17 +100,20 @@ public class WavFile {
 		let wavId = try read(4).convertedToU32()
 		guard wavId == Self.wavIDWave else { throw WavError.corruptWavFile("No WAVE id chunk") }
 
+		var info: WavInfo?
+
 		let loopSanity = 20
 		loop: for _ in 0..<loopSanity {
 			let chunkType = try read(4).convertedToU32()
 
+
 			switch chunkType {
 			case Self.wavIDFmt:
-				try readFMTChunk()
+				info = try readFMTChunk()
 			case Self.wavIDData:
 				let size = try read(4, byteOrder: .littleEndian).convertedToU32()
-				self.totalSampleSize = Int(size)
 				self.sampleDataPointerOffsetStart = pointerOffset
+				self.wavInfo = info?.settingTotalSampleSize(Int(size))
 				break loop
 			default:
 				let size = try read(4, byteOrder: .littleEndian)
@@ -89,19 +122,10 @@ public class WavFile {
 				pointerOffset += Int(size)
 			}
 		}
-
-		guard
-			let channels = channels,
-			let bitsPerSample = bitsPerSample
-		else { throw WavError.unknown }
-
-		totalSamples = totalSampleSize / (channels * (bitsPerSample / 8))
-		if bitsPerSample == 24 {
-			totalSamples = (totalSamples ?? 0) - 1
-		}
 	}
 
-	private func readFMTChunk() throws {
+	/// returns a WavInfo, but incomplete without the totalSampleSize
+	private func readFMTChunk() throws -> WavInfo {
 		var sizeRemaining = try read(4, byteOrder: .littleEndian)
 			.convertedToU32()
 			.madeEven()
@@ -111,18 +135,15 @@ public class WavFile {
 		guard sizeRemaining >= 16 else { throw WavError.corruptWavFile("fmt chunk too small")}
 
 		let formatTag = try read(2, byteOrder: .littleEndian).converted(to: UInt16.self)
-		self.format = formatTag
 		sizeRemaining -= 2
 		guard
 			[Self.wavFormatPCM].contains(formatTag)
 		else { throw WavError.notSupported("Only support PCM Wave format") }
 
 		let channels = try read(single: UInt16.self, byteOrder: .littleEndian)
-		self.channels = Int(channels)
 		sizeRemaining -= 2
 
 		let samplesPerSecond = try read(4, byteOrder: .littleEndian).convertedToU32()
-		self.samplesPerSecond = Int(samplesPerSecond)
 		sizeRemaining -= 4
 
 		_ = read(4) // avg bytes/sec
@@ -130,11 +151,17 @@ public class WavFile {
 		sizeRemaining -= 6
 
 		let bitsPerSample = try read(2, byteOrder: .littleEndian).converted(to: UInt16.self)
-		self.bitsPerSample = Int(bitsPerSample)
 		sizeRemaining -= 2
 		guard
 			bitsPerSample.isMultiple(of: 8)
 		else { throw WavError.corruptWavFile("Bits per sample is not divisible by 8") }
+
+		return WavInfo(
+			totalSampleSize: -1,
+			format: try WavInfo.WavFormat(from: formatTag),
+			channels: try SwiftIsNotLame.ChannelCount(from: Int(channels)),
+			sampleRate: try SwiftIsNotLame.SampleRate(from: Int(samplesPerSecond)),
+			bitsPerSample: Int(bitsPerSample))
 	}
 
 	// MARK: - Generic byte reading
