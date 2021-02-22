@@ -9,6 +9,12 @@ public class SwiftIsNotLame {
 	public enum ChannelCount: Int32 {
 		case one = 1
 		case two
+
+		public init(from int: Int) throws {
+			let value = Int32(int)
+			let new = ChannelCount(rawValue: value)
+			try self = new.unwrap()
+		}
 	}
 
 	public var channels = ChannelCount.two
@@ -16,6 +22,12 @@ public class SwiftIsNotLame {
 	public enum SampleRate: Int32 {
 		case hz44100 = 44100
 		case hz48000 = 48000
+
+		public init(from int: Int) throws {
+			let value = Int32(int)
+			let new = SampleRate(rawValue: value)
+			try self = new.unwrap()
+		}
 	}
 	public var sampleRate = SampleRate.hz44100
 
