@@ -27,6 +27,7 @@ public class WavFile {
 		self.sourceData = sourceData
 	}
 
+	// MARK: - Wav channel conveniences
 	/// Channel value is 0 indexed - if there are two channels, channel 0 and channel 1 are valid values.
 	public func sample<BitRep: FixedWidthInteger>(at offset: Int, channel: Int) throws -> BitRep {
 		let startOffset = pointerOffset
@@ -45,18 +46,22 @@ public class WavFile {
 	/// Channel value is 0 indexed - if there are two channels, channel 0 and channel 1 are valid values.
 	public func channelBuffer<BitRep: FixedWidthInteger>(channel: Int) throws -> ContiguousArray<BitRep> {
 		guard let totalSamples = totalSamples else { return [] }
-//		let is24Bit = bitsPerSample == 24
+		let is24Bit = bitsPerSample == 24
 
 		var channelBuffer = ContiguousArray<BitRep>(unsafeUninitializedCapacity: totalSamples) { _, _ in }
 		for sampleIndex in (0..<totalSamples) {
-			let thisSample: BitRep = try sample(at: sampleIndex, channel: channel)
+			var thisSample: BitRep = try sample(at: sampleIndex, channel: channel)
+			if is24Bit {
+				thisSample = try thisSample.convert24bitTo32()
+			}
 			channelBuffer.append(thisSample)
 		}
 
 		return channelBuffer
 	}
 
-	public func decode() throws {
+	// MARK: - Wav byte reading
+	public func processHeader() throws {
 		// header
 		let magic = try read(4).convertedToU32()
 		guard magic == Self.wavMagic else { throw WavError.notWavFile }
@@ -91,7 +96,9 @@ public class WavFile {
 		else { throw WavError.unknown }
 
 		totalSamples = totalSampleSize / (channels * (bitsPerSample / 8))
-		print("here")
+		if bitsPerSample == 24 {
+			totalSamples = (totalSamples ?? 0) - 1
+		}
 	}
 
 	private func readFMTChunk() throws {
@@ -167,6 +174,30 @@ public class WavFile {
 	}
 }
 
+enum ConversionError: Error {
+	case not32bit
+}
+
+extension FixedWidthInteger {
+	func convert24bitTo32() throws -> Self {
+		guard type(of: self) == Int32.self else { throw ConversionError.not32bit }
+
+		var bit24 = self << 8
+		bit24 = bit24 >> 8
+
+		let int24Sign: Self = 0x80_00_00
+		let signed = (int24Sign & bit24) == int24Sign
+
+		if signed {
+			bit24 = bit24 | 0xFF_00_00_00
+		}
+
+		var double = Double(bit24)
+		double *= Double(Int32.max) / Double(0x7FFFFF)
+
+		return Self(double)
+	}
+}
 
 extension Array where Element == UInt8 {
 	enum DataError: Error {
