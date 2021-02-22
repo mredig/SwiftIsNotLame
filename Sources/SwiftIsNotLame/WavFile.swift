@@ -177,10 +177,19 @@ extension Array where Element == UInt8 {
 		let byteSize = MemoryLayout<BitRep>.size
 		guard count == byteSize else { throw DataError.incorrectByteCount }
 
+		/*
+		this is what the code used to be, but ended up being 3-4x less efficient
 		return reversed()
 			.enumerated()
 			.map { BitRep($0.element) << (8 * $0.offset) }
 			.reduce(0, |)
+		*/
+		var outVal = BitRep(0)
+		for index in 0..<count {
+			let bitshift = count - index - 1
+			outVal |= BitRep(self[index]) << (bitshift * 8)
+		}
+		return outVal
 	}
 
 	func convertedToU32() throws -> UInt32 {
