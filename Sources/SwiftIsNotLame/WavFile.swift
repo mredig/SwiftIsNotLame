@@ -52,8 +52,9 @@ public class WavFile {
 		}
 	}
 
-	public init(sourceData: Data) {
+	public init(sourceData: Data) throws {
 		self.sourceData = sourceData
+		try processHeader()
 	}
 
 	// MARK: - Wav channel conveniences
