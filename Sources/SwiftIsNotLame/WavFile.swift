@@ -52,8 +52,9 @@ public class WavFile {
 		}
 	}
 
-	public init(sourceData: Data) {
+	public init(sourceData: Data) throws {
 		self.sourceData = sourceData
+		try processHeader()
 	}
 
 	// MARK: - Wav channel conveniences
@@ -105,7 +106,6 @@ public class WavFile {
 		let loopSanity = 20
 		loop: for _ in 0..<loopSanity {
 			let chunkType = try read(4).convertedToU32()
-
 
 			switch chunkType {
 			case Self.wavIDFmt:

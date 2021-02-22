@@ -136,7 +136,59 @@ public class SwiftIsNotLame {
 		lame_close(lameGlobal)
 	}
 
+	// MARK: - Layer 3
+	public func encodeAudio(from wavFile: WavFile) throws -> Data {
+		guard let wavInfo = wavFile.wavInfo else {
+			throw LameError.badInput
+		}
+		channels = wavInfo.channels
+		sampleRate = wavInfo.sampleRate
+		prepareForEncoding()
+
+		var mp3Data: Data
+
+		switch wavInfo.format {
+		case .pcm:
+			switch wavInfo.bitsPerSample {
+			case 16:
+				let channel1: [Int16] = Array(try wavFile.channelBuffer(channel: 0))
+				let channel2: [Int16]? = (
+					wavInfo.channels.rawValue > 1 ?
+						try wavFile.channelBuffer(channel: 1) :
+						nil)
+					.map { Array($0) }
+				mp3Data = try encodeAudio(channel1, channel2)
+			case 24, 32:
+				let channel1: [Int32] = Array(try wavFile.channelBuffer(channel: 0))
+				let channel2: [Int32]? = (
+					wavInfo.channels.rawValue > 1 ?
+						try wavFile.channelBuffer(channel: 1) :
+						nil)
+					.map { Array($0) }
+				mp3Data = try encodeAudio(channel1, channel2)
+			default:
+				fatalError()
+			}
+		case .float:
+//			switch wavInfo.bitsPerSample {
+//			case 32:
+//				return Float.self
+//			case 64:
+//				return Double.self
+//			default:
+//				fatalError()
+//			}
+			fatalError("float not supported")
+		}
+
+		mp3Data += try finishEncoding()
+		return mp3Data
+//		let leftChannel: [theType] = try wavFile.channelBuffer(channel: 0)
+	}
+
 	// MARK: - Layer 2
+	/// still needs `prepareForEncoding` called before and `finishEncoding` called afterwards, as well as concatenation of returned data
+	/// takes entire channels for input and chunks them up to feed to `encodeChunk` in a loop
 	public func encodeAudio<BitRep: PCMBitRepresentation>(_ rawChannelOne: [BitRep], _ rawChannelTwo: [BitRep]?) throws -> Data {
 		let buffer1 = rawChannelOne.withUnsafeBufferPointer { $0 }
 		let buffer2 = rawChannelTwo?.withUnsafeBufferPointer { $0 }
@@ -276,6 +328,7 @@ public class SwiftIsNotLame {
 		case mismatchedChannelSamplesProvided
 		case noBufferInput
 		case mp3InternalError(code: Int32)
+		case badInput
 	}
 }
 

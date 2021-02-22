@@ -30,7 +30,7 @@ struct SwiftIsNotLameExe: ParsableCommand {
 	var inputFile: URL
 
 	@Option(name: .shortAndLong, help: "The output mp3 file", transform: { URL(fileURLWithPath: $0) })
-	var outputFile: URL
+	var outputFile: URL?
 
 
 	func run() throws {
@@ -39,30 +39,26 @@ struct SwiftIsNotLameExe: ParsableCommand {
 		stopwatch.start("loading wav file")
 		let lampshadeWavFile = inputFile
 		let lampshadeData = try Data(contentsOf: lampshadeWavFile)
-		let testWav = WavFile(sourceData: lampshadeData)
+
 		stopwatch.logCheckpoint(note: "decoding wav header")
-		try testWav.processHeader()
+		let testWav = try WavFile(sourceData: lampshadeData)
 
 		stopwatch.logCheckpoint(note: "setting up lame")
 		let notLame = SwiftIsNotLame()
-		notLame.channels = testWav.wavInfo?.channels ?? notLame.channels
-		notLame.sampleRate = testWav.wavInfo?.sampleRate ?? notLame.sampleRate
-		notLame.mode = .stereo
+
 		notLame.bitRate = .CBR(rate: 256)
-		notLame.prepareForEncoding()
 		notLame.quality = 0
+		stopwatch.logCheckpoint(note: "encoding")
+		let mp3Data = try notLame.encodeAudio(from: testWav)
 
-
-		stopwatch.logCheckpoint(note: "getting decoded Int16 array")
-		let leftChannel: [Int16] = Array(try testWav.channelBuffer(channel: 0))
-		let rightChannel: [Int16] = Array(try testWav.channelBuffer(channel: 1))
-
-		stopwatch.logCheckpoint(note: "starting mp3 encode")
-		var mp3Data = try notLame.encodeAudio(leftChannel, rightChannel)
-
-		mp3Data += try notLame.finishEncoding()
+		let defaultFilename = (inputFile.lastPathComponent as NSString).deletingPathExtension
+		let outputFile = self.outputFile ?? inputFile
+			.deletingLastPathComponent()
+			.appendingPathComponent(defaultFilename)
+			.appendingPathExtension("mp3")
 
 		try mp3Data.write(to: outputFile)
+
 
 		stopwatch.logCheckpoint(note: "done")
 		stopwatch.printResults()
