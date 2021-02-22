@@ -41,11 +41,11 @@ struct SwiftIsNotLameExe: ParsableCommand {
 		let lampshadeData = try Data(contentsOf: lampshadeWavFile)
 		let testWav = WavFile(sourceData: lampshadeData)
 		stopwatch.logCheckpoint(note: "decoding wav header")
-		try testWav.decode()
+		try testWav.processHeader()
 
 		stopwatch.logCheckpoint(note: "getting decoded Int16 array")
-		let leftChannel: [Int16] = Array(try testWav.channelBuffer(channel: 0))
-		let rightChannel: [Int16] = Array(try testWav.channelBuffer(channel: 1))
+		let leftChannel: [Int32] = Array(try testWav.channelBuffer(channel: 0))
+		let rightChannel: [Int32] = Array(try testWav.channelBuffer(channel: 1))
 
 		stopwatch.logCheckpoint(note: "setting up lame")
 		let notLame = SwiftIsNotLame()
