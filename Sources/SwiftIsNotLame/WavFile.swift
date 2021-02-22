@@ -178,18 +178,32 @@ extension Array where Element == UInt8 {
 		guard count == byteSize else { throw DataError.incorrectByteCount }
 
 		/*
-		this is what the code used to be, but ended up being 3-4x less efficient
+		// this is what the code used to be, but ended up being 3-4x less efficient
 		return reversed()
 			.enumerated()
 			.map { BitRep($0.element) << (8 * $0.offset) }
 			.reduce(0, |)
 		*/
+
 		var outVal = BitRep(0)
 		for index in 0..<count {
 			let bitshift = count - index - 1
 			outVal |= BitRep(self[index]) << (bitshift * 8)
 		}
 		return outVal
+
+		/*
+		// this is a slightly faster, yet more complex/ugly alternative
+		let alignment = MemoryLayout<BitRep>.alignment
+		let unsafeBuffer = UnsafeMutableRawBufferPointer(start: UnsafeMutableRawPointer.allocate(byteCount: byteSize, alignment: alignment), count: byteSize)
+
+		for index in 0..<count {
+			let invertedIndex = count - index - 1
+			unsafeBuffer[index] = self[invertedIndex]
+		}
+
+		return try unsafeBuffer.bindMemory(to: BitRep.self).first.unwrap()
+		*/
 	}
 
 	func convertedToU32() throws -> UInt32 {
