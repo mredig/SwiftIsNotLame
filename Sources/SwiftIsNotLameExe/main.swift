@@ -38,10 +38,10 @@ struct SwiftIsNotLameExe: ParsableCommand {
 
 		stopwatch.start("loading wav file")
 		let lampshadeWavFile = inputFile
-		let lampshadeData = try Data(contentsOf: lampshadeWavFile)
 
 		stopwatch.logCheckpoint(note: "decoding wav header")
-		let testWav = try WavFile(sourceData: lampshadeData)
+		let testWav = try WavFile(filePath: lampshadeWavFile)
+		try testWav.loadIntoMemory()
 
 		stopwatch.logCheckpoint(note: "setting up lame")
 		let notLame = SwiftIsNotLame()

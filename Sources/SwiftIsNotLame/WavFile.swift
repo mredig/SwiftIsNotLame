@@ -1,6 +1,6 @@
 import Foundation
 
-public class WavFile {
+public class WavFile: BinaryFile {
 	static let wavMagic = try! "RIFF".toMagicNumber()
 	static let wavIDFmt = try! "fmt ".toMagicNumber()
 	static let wavIDWave = try! "WAVE".toMagicNumber()
@@ -9,9 +9,6 @@ public class WavFile {
 	static let wavFormatPCM: UInt16 = 0x01
 	static let wavFormatIEEEFloat: UInt16 = 0x03
 
-	let sourceData: Data
-
-	private var pointerOffset = 0
 	private var sampleDataPointerOffsetStart = 0
 
 	public private(set) var wavInfo: WavInfo?
@@ -52,17 +49,14 @@ public class WavFile {
 		}
 	}
 
-	public init(sourceData: Data) throws {
-		self.sourceData = sourceData
+	override public init(filePath: URL) throws {
+		try super.init(filePath: filePath)
 		try processHeader()
 	}
 
 	// MARK: - Wav channel conveniences
 	/// Channel value is 0 indexed - if there are two channels, channel 0 and channel 1 are valid values.
 	public func sample<BitRep: FixedWidthInteger>(at offset: Int, channel: Int) throws -> BitRep {
-		let startOffset = pointerOffset
-		defer { pointerOffset = startOffset }
-
 		guard
 			let info = wavInfo,
 			channel < info.channels.rawValue
@@ -70,7 +64,7 @@ public class WavFile {
 
 		let totalOffsetFromDataPointer = sampleDataPointerOffsetStart + (offset * info.channels.rawValue * info.bytesPerSample) + (info.bytesPerSample * channel)
 
-		return try read(single: BitRep.self, byteOrder: .littleEndian, startingAt: totalOffsetFromDataPointer)
+		return try read(single: BitRep.self, byteOrder: .littleEndian, startingAt: UInt64(totalOffsetFromDataPointer))
 	}
 
 	/// Channel value is 0 indexed - if there are two channels, channel 0 and channel 1 are valid values.
@@ -97,7 +91,7 @@ public class WavFile {
 		let magic = try read(4).convertedToU32()
 		guard magic == Self.wavMagic else { throw WavError.notWavFile }
 
-		_ = read(4) // file length
+		_ = try read(4) // file length
 		let wavId = try read(4).convertedToU32()
 		guard wavId == Self.wavIDWave else { throw WavError.corruptWavFile("No WAVE id chunk") }
 
@@ -112,14 +106,15 @@ public class WavFile {
 				info = try readFMTChunk()
 			case Self.wavIDData:
 				let size = try read(4, byteOrder: .littleEndian).convertedToU32()
-				self.sampleDataPointerOffsetStart = pointerOffset
+				self.sampleDataPointerOffsetStart = Int(offset)
 				self.wavInfo = info?.settingTotalSampleSize(Int(size))
 				break loop
 			default:
 				let size = try read(4, byteOrder: .littleEndian)
 					.convertedToU32()
 					.madeEven()
-				pointerOffset += Int(size)
+				let offset = try handle.handleOffset()
+				try handle.handleSeek(toOffset: offset + UInt64(size))
 			}
 		}
 	}
@@ -129,8 +124,6 @@ public class WavFile {
 		var sizeRemaining = try read(4, byteOrder: .littleEndian)
 			.convertedToU32()
 			.madeEven()
-
-		defer { pointerOffset += Int(sizeRemaining) }
 
 		guard sizeRemaining >= 16 else { throw WavError.corruptWavFile("fmt chunk too small")}
 
@@ -146,8 +139,8 @@ public class WavFile {
 		let samplesPerSecond = try read(4, byteOrder: .littleEndian).convertedToU32()
 		sizeRemaining -= 4
 
-		_ = read(4) // avg bytes/sec
-		_ = read(2) // block align
+		_ = try read(4) // avg bytes/sec
+		_ = try read(2) // block align
 		sizeRemaining -= 6
 
 		let bitsPerSample = try read(2, byteOrder: .littleEndian).converted(to: UInt16.self)
@@ -162,33 +155,6 @@ public class WavFile {
 			channels: try SwiftIsNotLame.ChannelCount(from: Int(channels)),
 			sampleRate: try SwiftIsNotLame.SampleRate(from: Int(samplesPerSecond)),
 			bitsPerSample: Int(bitsPerSample))
-	}
-
-	// MARK: - Generic byte reading
-	enum ByteOrder {
-		case bigEndian
-		case littleEndian
-	}
-
-	private func read(_ byteCount: Int, byteOrder: ByteOrder = .bigEndian, startingAt offset: Int? = nil) -> [UInt8] {
-		let startOffset = offset ?? pointerOffset
-		let endOffset = startOffset + byteCount
-
-		let bytes = sourceData[startOffset..<endOffset]
-
-		pointerOffset = endOffset
-		switch byteOrder {
-		case .bigEndian:
-			return Array(bytes)
-		case .littleEndian:
-			return bytes.reversed()
-		}
-	}
-
-	private func read<BitRep: FixedWidthInteger>(single type: BitRep.Type, byteOrder: ByteOrder = .bigEndian, startingAt offset: Int? = nil) throws -> BitRep {
-		let size = MemoryLayout<BitRep>.size
-		return try read(size, byteOrder: byteOrder, startingAt: offset)
-			.converted(to: BitRep.self)
 	}
 
 	enum WavError: Error {
