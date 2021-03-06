@@ -43,6 +43,19 @@ final class SwiftIsNotLameTests: XCTestCase {
 		XCTAssertEqual("1d8d0622fba87a813d6a8de00454ae09", hash)
 	}
 
+//	func testUnsigned8() throws {
+//		let wavFileURL = Bundle.module.url(forResource: "unsigned8", withExtension: "wav", subdirectory: "TestResources")!
+//
+//		let testWav = try WavFile(filePath: wavFileURL)
+//		try testWav.loadIntoMemory()
+//
+//		let mp3Data = try convert(testWav)
+//
+//		let hash = dataMd5Hash(mp3Data)
+//
+//		XCTAssertEqual("1d8d0622fba87a813d6a8de00454ae09", hash)
+//	}
+
 	private func convert(_ wavFile: WavFile) throws -> Data {
 		let notLame = SwiftIsNotLame()
 

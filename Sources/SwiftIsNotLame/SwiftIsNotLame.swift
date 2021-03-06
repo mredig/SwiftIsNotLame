@@ -150,6 +150,14 @@ public class SwiftIsNotLame {
 		switch wavInfo.format {
 		case .pcm:
 			switch wavInfo.bitsPerSample {
+//			case 8:
+//				let channel1: [UInt8] = Array(try wavFile.channelBuffer(channel: 0))
+//				let channel2: [UInt8]? = (
+//					wavInfo.channels.rawValue > 1 ?
+//						try wavFile.channelBuffer(channel: 1) :
+//						nil)
+//					.map { Array($0) }
+//				mp3Data = try encodeAudio(channel1, channel2)
 			case 16:
 				let channel1: [Int16] = Array(try wavFile.channelBuffer(channel: 0))
 				let channel2: [Int16]? = (
