@@ -37,30 +37,25 @@ public class WavFile: AudioBinaryFile {
 		let loopSanity = 20
 		loop: for _ in 0..<loopSanity {
 			let chunkType = try read(4).convertedToU32()
+			let chunkSize = try read(4, byteOrder: .littleEndian).convertedToU32()
 
 			switch chunkType {
 			case Self.wavIDFmt:
-				info = try readFMTChunk()
+				info = try readFMTChunk(size: chunkSize)
 			case Self.wavIDData:
-				let size = try read(4, byteOrder: .littleEndian).convertedToU32()
 				self.sampleDataPointerOffsetStart = Int(offset)
-				self._audioInfo = info?.settingTotalSampleSize(Int(size))
+				self._audioInfo = info?.settingTotalSampleSize(Int(chunkSize))
 				break loop
 			default:
-				let size = try read(4, byteOrder: .littleEndian)
-					.convertedToU32()
-					.madeEven()
-				let offset = try handle.handleOffset()
-				try handle.handleSeek(toOffset: offset + UInt64(size))
+				let size = chunkSize.madeEven()
+				try skip(Int(size))
 			}
 		}
 	}
 
 	/// returns a WavInfo, but incomplete without the totalSampleSize
-	private func readFMTChunk() throws -> WavInfo {
-		var sizeRemaining = try read(4, byteOrder: .littleEndian)
-			.convertedToU32()
-			.madeEven()
+	private func readFMTChunk(size: UInt32) throws -> WavInfo {
+		var sizeRemaining = size.madeEven()
 
 		guard sizeRemaining >= 16 else { throw WavError.corruptWavFile("fmt chunk too small")}
 
