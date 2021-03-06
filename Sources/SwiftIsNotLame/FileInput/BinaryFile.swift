@@ -5,6 +5,8 @@ public class BinaryFile {
 
 	let handle: FileHandle
 
+	open private(set) var audioInfo: SwiftIsNotLame.AudioInfo?
+
 	var offset: UInt64 {
 		if memoryRepresentation != nil {
 			return UInt64(memoryOffset)

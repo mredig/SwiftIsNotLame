@@ -105,6 +105,31 @@ public class SwiftIsNotLame {
 		didSet { validateQuality() }
 	}
 
+	public struct AudioInfo {
+		public enum AudioFormat {
+			case pcm
+			case float
+		}
+		public let totalSampleSize: Int
+		public let format: AudioFormat
+		public let channels: ChannelCount
+		public let sampleRate: SampleRate
+		public let bitsPerSample: Int
+		public var bytesPerSample: Int { bitsPerSample / 8 }
+		public var totalSamples: Int {
+			totalSampleSize / (channels.rawValue * (bitsPerSample / 8)) - (bitsPerSample == 24 ? 1 : 0)
+		}
+
+		func settingTotalSampleSize(_ value: Int) -> Self {
+			return AudioInfo(
+				totalSampleSize: value,
+				format: format,
+				channels: channels,
+				sampleRate: sampleRate,
+				bitsPerSample: bitsPerSample)
+		}
+	}
+
 	private var _mp3Buffer: UnsafeMutableBufferPointer<UInt8>
 
 	public var defaultMp3Buffer: UnsafeBufferPointer<UInt8> { UnsafeBufferPointer(_mp3Buffer) }
@@ -138,18 +163,18 @@ public class SwiftIsNotLame {
 
 	// MARK: - Layer 3
 	public func encodeAudio(from wavFile: WavFile) throws -> Data {
-		guard let wavInfo = wavFile.wavInfo else {
+		guard let audioInfo = wavFile.audioInfo else {
 			throw LameError.badInput
 		}
-		channels = wavInfo.channels
-		sampleRate = wavInfo.sampleRate
+		channels = audioInfo.channels
+		sampleRate = audioInfo.sampleRate
 		prepareForEncoding()
 
 		var mp3Data: Data
 
-		switch wavInfo.format {
+		switch audioInfo.format {
 		case .pcm:
-			switch wavInfo.bitsPerSample {
+			switch audioInfo.bitsPerSample {
 //			case 8:
 //				let channel1: [UInt8] = Array(try wavFile.channelBuffer(channel: 0))
 //				let channel2: [UInt8]? = (
@@ -161,7 +186,7 @@ public class SwiftIsNotLame {
 			case 16:
 				let channel1: [Int16] = Array(try wavFile.channelBuffer(channel: 0))
 				let channel2: [Int16]? = (
-					wavInfo.channels.rawValue > 1 ?
+					audioInfo.channels.rawValue > 1 ?
 						try wavFile.channelBuffer(channel: 1) :
 						nil)
 					.map { Array($0) }
@@ -169,7 +194,7 @@ public class SwiftIsNotLame {
 			case 24, 32:
 				let channel1: [Int32] = Array(try wavFile.channelBuffer(channel: 0))
 				let channel2: [Int32]? = (
-					wavInfo.channels.rawValue > 1 ?
+					audioInfo.channels.rawValue > 1 ?
 						try wavFile.channelBuffer(channel: 1) :
 						nil)
 					.map { Array($0) }
@@ -178,11 +203,11 @@ public class SwiftIsNotLame {
 				fatalError()
 			}
 		case .float:
-			switch wavInfo.bitsPerSample {
+			switch audioInfo.bitsPerSample {
 			case 32:
 				let channel1: [Float] = Array(try wavFile.channelBuffer(channel: 0))
 				let channel2: [Float]? = (
-					wavInfo.channels.rawValue > 1 ?
+					audioInfo.channels.rawValue > 1 ?
 						try wavFile.channelBuffer(channel: 1) :
 						nil)
 					.map { Array($0) }
@@ -190,7 +215,7 @@ public class SwiftIsNotLame {
 			case 64:
 				let channel1: [Double] = Array(try wavFile.channelBuffer(channel: 0))
 				let channel2: [Double]? = (
-					wavInfo.channels.rawValue > 1 ?
+					audioInfo.channels.rawValue > 1 ?
 						try wavFile.channelBuffer(channel: 1) :
 						nil)
 					.map { Array($0) }

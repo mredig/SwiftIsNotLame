@@ -11,43 +11,10 @@ public class WavFile: BinaryFile {
 
 	private var sampleDataPointerOffsetStart = 0
 
-	public private(set) var wavInfo: WavInfo?
+	public private(set) var _audioInfo: SwiftIsNotLame.AudioInfo?
+	public override var audioInfo: SwiftIsNotLame.AudioInfo? { _audioInfo }
 
-	public struct WavInfo {
-		public enum WavFormat {
-			case pcm
-			case float
-
-			init(from value: UInt16) throws {
-				switch value {
-				case WavFile.wavFormatPCM:
-					self = .pcm
-				case WavFile.wavFormatIEEEFloat:
-					self = .float
-				default:
-					throw WavError.notSupported("Non PCM and float wavs are unsupported")
-				}
-			}
-		}
-		public let totalSampleSize: Int
-		public let format: WavFormat
-		public let channels: SwiftIsNotLame.ChannelCount
-		public let sampleRate: SwiftIsNotLame.SampleRate
-		public let bitsPerSample: Int
-		public var bytesPerSample: Int { bitsPerSample / 8 }
-		public var totalSamples: Int {
-			totalSampleSize / (channels.rawValue * (bitsPerSample / 8)) - (bitsPerSample == 24 ? 1 : 0)
-		}
-
-		func settingTotalSampleSize(_ value: Int) -> Self {
-			return WavInfo(
-				totalSampleSize: value,
-				format: format,
-				channels: channels,
-				sampleRate: sampleRate,
-				bitsPerSample: bitsPerSample)
-		}
-	}
+	typealias WavInfo = SwiftIsNotLame.AudioInfo
 
 	override public init(filePath: URL) throws {
 		try super.init(filePath: filePath)
@@ -58,7 +25,7 @@ public class WavFile: BinaryFile {
 	/// Channel value is 0 indexed - if there are two channels, channel 0 and channel 1 are valid values.
 	public func sample<BitRep: PCMBitRepresentation>(at offset: Int, channel: Int) throws -> BitRep {
 		guard
-			let info = wavInfo,
+			let info = _audioInfo,
 			channel < info.channels.rawValue
 		else { throw WavError.genericError("Requested sample for channel that doesnt exist") }
 
@@ -69,7 +36,7 @@ public class WavFile: BinaryFile {
 
 	/// Channel value is 0 indexed - if there are two channels, channel 0 and channel 1 are valid values.
 	public func channelBuffer<BitRep: PCMBitRepresentation>(channel: Int) throws -> ContiguousArray<BitRep> {
-		guard let info = wavInfo else { return [] }
+		guard let info = _audioInfo else { return [] }
 		let totalSamples = info.totalSamples
 		let is24Bit = info.bitsPerSample == 24
 
@@ -107,7 +74,7 @@ public class WavFile: BinaryFile {
 			case Self.wavIDData:
 				let size = try read(4, byteOrder: .littleEndian).convertedToU32()
 				self.sampleDataPointerOffsetStart = Int(offset)
-				self.wavInfo = info?.settingTotalSampleSize(Int(size))
+				self._audioInfo = info?.settingTotalSampleSize(Int(size))
 				break loop
 			default:
 				let size = try read(4, byteOrder: .littleEndian)
@@ -132,6 +99,13 @@ public class WavFile: BinaryFile {
 		guard
 			[Self.wavFormatPCM, Self.wavFormatIEEEFloat].contains(formatTag)
 		else { throw WavError.notSupported("Only support PCM Wave format") }
+		let format: WavInfo.AudioFormat
+		switch formatTag {
+		case 3:
+			format = .float
+		default:
+			format = .pcm
+		}
 
 		let channels = try read(single: UInt16.self, byteOrder: .littleEndian)
 		sizeRemaining -= 2
@@ -151,7 +125,7 @@ public class WavFile: BinaryFile {
 
 		return WavInfo(
 			totalSampleSize: -1,
-			format: try WavInfo.WavFormat(from: formatTag),
+			format: format,
 			channels: try SwiftIsNotLame.ChannelCount(from: Int(channels)),
 			sampleRate: try SwiftIsNotLame.SampleRate(from: Int(samplesPerSecond)),
 			bitsPerSample: Int(bitsPerSample))
