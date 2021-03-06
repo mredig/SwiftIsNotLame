@@ -49,6 +49,7 @@ let package = Package(
 			path: "./Sources/lame"),
         .testTarget(
             name: "SwiftIsNotLameTests",
-            dependencies: ["SwiftIsNotLame"]),
+            dependencies: ["SwiftIsNotLame"],
+			resources: [.copy("TestResources")]),
     ]
 )

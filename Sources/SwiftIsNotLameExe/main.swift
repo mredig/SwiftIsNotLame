@@ -59,7 +59,6 @@ struct SwiftIsNotLameExe: ParsableCommand {
 
 		try mp3Data.write(to: outputFile)
 
-
 		stopwatch.logCheckpoint(note: "done")
 		stopwatch.printResults()
 	}
