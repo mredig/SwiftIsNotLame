@@ -241,21 +241,4 @@ extension FixedWidthInteger {
 	mutating func makeEven() {
 		self = madeEven()
 	}
-
-	func toBin() -> String {
-		let byteCount = MemoryLayout<Self>.size
-		let bytes = (0..<byteCount)
-			.map { 0xff & (self >> (8 * $0)) }
-			.map { UInt8($0) }
-			.reversed()
-		let strings = bytes
-			.map { String($0, radix: 2) }
-			.map { (string: String) -> String in
-				let diff = 8 - string.count
-				let zeros = String(repeating: "0", count: diff)
-				return zeros + string
-			}
-			.joined(separator: " ")
-		return strings
-	}
 }
