@@ -178,20 +178,25 @@ public class SwiftIsNotLame {
 				fatalError()
 			}
 		case .float:
-//			switch wavInfo.bitsPerSample {
-//			case 32:
-//				return Float.self
-//			case 64:
-//				return Double.self
-//			default:
-//				fatalError()
-//			}
-			fatalError("float not supported")
+			switch wavInfo.bitsPerSample {
+			case 32:
+				let channel1: [Float] = Array(try wavFile.channelBuffer(channel: 0))
+				let channel2: [Float]? = (
+					wavInfo.channels.rawValue > 1 ?
+						try wavFile.channelBuffer(channel: 1) :
+						nil)
+					.map { Array($0) }
+				mp3Data = try encodeAudio(channel1, channel2)
+			case 64:
+				mp3Data = Data()
+				break
+			default:
+				fatalError()
+			}
 		}
 
 		mp3Data += try finishEncoding()
 		return mp3Data
-//		let leftChannel: [theType] = try wavFile.channelBuffer(channel: 0)
 	}
 
 	// MARK: - Layer 2
@@ -364,7 +369,7 @@ extension Int: PCMBitRepresentation {
 
 extension Float: PCMBitRepresentation {
 	public static func lameEncode(_ lame: lame_t!, channelOneBuffer: UnsafePointer<Float>!, channelTwoBuffer: UnsafePointer<Float>!, sampleSize: Int, mp3Buffer: UnsafeMutablePointer<UInt8>!, mp3BufferCount: Int) -> Int32 {
-		lame_encode_buffer_float(lame, channelOneBuffer, channelTwoBuffer, Int32(sampleSize), mp3Buffer, Int32(mp3BufferCount))
+		lame_encode_buffer_ieee_float(lame, channelOneBuffer, channelTwoBuffer, Int32(sampleSize), mp3Buffer, Int32(mp3BufferCount))
 	}
 }
 

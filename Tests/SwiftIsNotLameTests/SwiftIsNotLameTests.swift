@@ -66,7 +66,7 @@ final class SwiftIsNotLameTests: XCTestCase {
 
 		let hash = dataMd5Hash(mp3Data)
 
-		XCTAssertEqual("1d8d0622fba87a813d6a8de00454ae09", hash) // <-- wrong
+		XCTAssertEqual("e3054cc83ce36cbda0e222ae2d58ce02", hash)
 	}
 
 	func testFloat64() throws {
