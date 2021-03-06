@@ -71,6 +71,7 @@ public class CafFile: AudioBinaryFile {
 				_ = try read(4) // edit count UInt32
 				self.sampleDataPointerOffsetStart =	offset
 				self._audioInfo = info?.settingTotalSampleSize(Int(chunkSize - 4))
+				break loop
 			default:
 				try skip(Int(chunkSize))
 			}
