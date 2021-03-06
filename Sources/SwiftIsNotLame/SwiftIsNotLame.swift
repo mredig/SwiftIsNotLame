@@ -162,8 +162,8 @@ public class SwiftIsNotLame {
 	}
 
 	// MARK: - Layer 3
-	public func encodeAudio(from wavFile: WavFile) throws -> Data {
-		guard let audioInfo = wavFile.audioInfo else {
+	public func encodeAudio(from inputFile: AudioBinaryFile) throws -> Data {
+		guard let audioInfo = inputFile.audioInfo else {
 			throw LameError.badInput
 		}
 		channels = audioInfo.channels
@@ -184,18 +184,18 @@ public class SwiftIsNotLame {
 //					.map { Array($0) }
 //				mp3Data = try encodeAudio(channel1, channel2)
 			case 16:
-				let channel1: [Int16] = Array(try wavFile.channelBuffer(channel: 0))
+				let channel1: [Int16] = Array(try inputFile.channelBuffer(channel: 0))
 				let channel2: [Int16]? = (
 					audioInfo.channels.rawValue > 1 ?
-						try wavFile.channelBuffer(channel: 1) :
+						try inputFile.channelBuffer(channel: 1) :
 						nil)
 					.map { Array($0) }
 				mp3Data = try encodeAudio(channel1, channel2)
 			case 24, 32:
-				let channel1: [Int32] = Array(try wavFile.channelBuffer(channel: 0))
+				let channel1: [Int32] = Array(try inputFile.channelBuffer(channel: 0))
 				let channel2: [Int32]? = (
 					audioInfo.channels.rawValue > 1 ?
-						try wavFile.channelBuffer(channel: 1) :
+						try inputFile.channelBuffer(channel: 1) :
 						nil)
 					.map { Array($0) }
 				mp3Data = try encodeAudio(channel1, channel2)
@@ -205,18 +205,18 @@ public class SwiftIsNotLame {
 		case .float:
 			switch audioInfo.bitsPerSample {
 			case 32:
-				let channel1: [Float] = Array(try wavFile.channelBuffer(channel: 0))
+				let channel1: [Float] = Array(try inputFile.channelBuffer(channel: 0))
 				let channel2: [Float]? = (
 					audioInfo.channels.rawValue > 1 ?
-						try wavFile.channelBuffer(channel: 1) :
+						try inputFile.channelBuffer(channel: 1) :
 						nil)
 					.map { Array($0) }
 				mp3Data = try encodeAudio(channel1, channel2)
 			case 64:
-				let channel1: [Double] = Array(try wavFile.channelBuffer(channel: 0))
+				let channel1: [Double] = Array(try inputFile.channelBuffer(channel: 0))
 				let channel2: [Double]? = (
 					audioInfo.channels.rawValue > 1 ?
-						try wavFile.channelBuffer(channel: 1) :
+						try inputFile.channelBuffer(channel: 1) :
 						nil)
 					.map { Array($0) }
 				mp3Data = try encodeAudio(channel1, channel2)

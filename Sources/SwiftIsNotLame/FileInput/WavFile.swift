@@ -1,6 +1,6 @@
 import Foundation
 
-public class WavFile: BinaryFile {
+public class WavFile: AudioBinaryFile {
 	static let wavMagic = try! "RIFF".toMagicNumber()
 	static let wavIDFmt = try! "fmt ".toMagicNumber()
 	static let wavIDWave = try! "WAVE".toMagicNumber()
@@ -19,37 +19,7 @@ public class WavFile: BinaryFile {
 	override public init(filePath: URL) throws {
 		try super.init(filePath: filePath)
 		try processHeader()
-	}
-
-	// MARK: - Wav channel conveniences
-	/// Channel value is 0 indexed - if there are two channels, channel 0 and channel 1 are valid values.
-	public func sample<BitRep: PCMBitRepresentation>(at offset: Int, channel: Int) throws -> BitRep {
-		guard
-			let info = _audioInfo,
-			channel < info.channels.rawValue
-		else { throw WavError.genericError("Requested sample for channel that doesnt exist") }
-
-		let totalOffsetFromDataPointer = sampleDataPointerOffsetStart + (offset * info.channels.rawValue * info.bytesPerSample) + (info.bytesPerSample * channel)
-
-		return try read(single: BitRep.self, byteOrder: .littleEndian, startingAt: UInt64(totalOffsetFromDataPointer))
-	}
-
-	/// Channel value is 0 indexed - if there are two channels, channel 0 and channel 1 are valid values.
-	public func channelBuffer<BitRep: PCMBitRepresentation>(channel: Int) throws -> ContiguousArray<BitRep> {
-		guard let info = _audioInfo else { return [] }
-		let totalSamples = info.totalSamples
-		let is24Bit = info.bitsPerSample == 24
-
-		var channelBuffer = ContiguousArray<BitRep>(unsafeUninitializedCapacity: totalSamples) { _, _ in }
-		for sampleIndex in (0..<totalSamples) {
-			var thisSample: BitRep = try sample(at: sampleIndex, channel: channel)
-			if is24Bit {
-				thisSample = try (thisSample as? Int32)?.convert24bitTo32() as! BitRep
-			}
-			channelBuffer.append(thisSample)
-		}
-
-		return channelBuffer
+		delegate = self
 	}
 
 	// MARK: - Wav byte reading
@@ -137,6 +107,12 @@ public class WavFile: BinaryFile {
 		case notSupported(_ description: String?)
 		case genericError(_ description: String?)
 		case unknown
+	}
+}
+
+extension WavFile: AudioBinaryFileDelegate {
+	func offsetForSample(_ sampleIndex: Int, channel: Int, audioInfo: SwiftIsNotLame.AudioInfo, byteOrder: inout BinaryFile.ByteOrder) -> Int {
+		sampleDataPointerOffsetStart + (sampleIndex * audioInfo.channels.rawValue * audioInfo.bytesPerSample) + (audioInfo.bytesPerSample * channel)
 	}
 }
 
