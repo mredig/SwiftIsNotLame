@@ -107,8 +107,7 @@ public class WavFile: AudioBinaryFile {
 }
 
 extension WavFile: AudioBinaryFileDelegate {
-	func offsetForSample(_ sampleIndex: Int, channel: Int, audioInfo: SwiftIsNotLame.AudioInfo) -> (sampleOffset: Int, byteOrder: BinaryFile.ByteOrder) {
-		let offset = sampleDataPointerOffsetStart + (sampleIndex * audioInfo.channels.rawValue * audioInfo.bytesPerSample) + (audioInfo.bytesPerSample * channel)
-		return (offset, audioInfo.byteOrder)
+	func offsetForSample(_ sampleIndex: Int, channel: Int, audioInfo: SwiftIsNotLame.AudioInfo) -> Int {
+		sampleDataPointerOffsetStart + (sampleIndex * audioInfo.channels.rawValue * audioInfo.bytesPerSample) + (audioInfo.bytesPerSample * channel)
 	}
 }
