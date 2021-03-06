@@ -47,6 +47,7 @@ public class CafFile: AudioBinaryFile {
 	override init(filePath: URL) throws {
 		try super.init(filePath: filePath)
 		try processHeader()
+		delegate = self
 	}
 
 	public func processHeader() throws {
