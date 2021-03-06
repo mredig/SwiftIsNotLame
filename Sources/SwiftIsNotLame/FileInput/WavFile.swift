@@ -77,7 +77,7 @@ public class WavFile: BinaryFile {
 		for sampleIndex in (0..<totalSamples) {
 			var thisSample: BitRep = try sample(at: sampleIndex, channel: channel)
 			if is24Bit {
-				thisSample = try thisSample.convert24bitTo32()
+				thisSample = try (thisSample as? Int32)?.convert24bitTo32() as! BitRep
 			}
 			channelBuffer.append(thisSample)
 		}
@@ -168,26 +168,6 @@ public class WavFile: BinaryFile {
 
 enum ConversionError: Error {
 	case not32bit
-}
-
-extension FixedWidthInteger {
-	func convert24bitTo32() throws -> Self {
-		guard type(of: self) == Int32.self else { throw ConversionError.not32bit }
-
-		var bit24 = UInt32(self) & 0xFF_FF_FF
-
-		let int24Sign: UInt32 = 0x80_00_00
-		let signed = (int24Sign & bit24) == int24Sign
-
-		if signed {
-			bit24 = bit24 | 0xFF_00_00_00
-		}
-
-		var double = Double(Int32(bitPattern: bit24))
-		double *= Double(Int32.max) / Double(0x7FFFFF)
-
-		return Self(double)
-	}
 }
 
 extension Array where Element == UInt8 {
