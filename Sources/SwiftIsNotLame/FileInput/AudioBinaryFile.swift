@@ -1,7 +1,7 @@
 import Foundation
 
 protocol AudioBinaryFileDelegate: AnyObject {
-	func offsetForSample(_ sampleIndex: Int, channel: Int, audioInfo: SwiftIsNotLame.AudioInfo, byteOrder: inout BinaryFile.ByteOrder) -> Int
+	func offsetForSample(_ sampleIndex: Int, channel: Int, audioInfo: SwiftIsNotLame.AudioInfo) -> (sampleOffset: Int, byteOrder: BinaryFile.ByteOrder)
 }
 
 public class AudioBinaryFile: BinaryFile {
@@ -16,14 +16,13 @@ public class AudioBinaryFile: BinaryFile {
 			channel < info.channels.rawValue
 		else { throw AudioBinaryError.genericError("Requested sample for channel that doesnt exist") }
 
-		var byteOrder = ByteOrder.littleEndian
 		guard
-			let totalOffsetFromDataPointer = delegate?.offsetForSample(sampleIndex, channel: channel, audioInfo: info, byteOrder: &byteOrder)
+			let (totalOffsetFromDataPointer, byteOrder) = delegate?.offsetForSample(sampleIndex, channel: channel, audioInfo: info)
 		else {
 			fatalError("Require delegate for AudioBinaryFile")
 		}
 
-		return try read(single: BitRep.self, byteOrder: .littleEndian, startingAt: UInt64(totalOffsetFromDataPointer))
+		return try read(single: BitRep.self, byteOrder: byteOrder, startingAt: UInt64(totalOffsetFromDataPointer))
 	}
 
 	/// Channel value is 0 indexed - if there are two channels, channel 0 and channel 1 are valid values.
