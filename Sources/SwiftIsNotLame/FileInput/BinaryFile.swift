@@ -36,6 +36,18 @@ public class BinaryFile {
 		case littleEndian
 	}
 
+	func skip(_ byteCount: Int) throws {
+		if let memoryRep = memoryRepresentation {
+			let newOffset = memoryOffset + byteCount
+			guard newOffset < memoryRep.count else { throw BinaryFileError.outOfBounds }
+			memoryOffset = newOffset
+		} else {
+			let currentOffset = try handle.handleOffset()
+			let newOffset = currentOffset + UInt64(byteCount)
+			try handle.handleSeek(toOffset: newOffset)
+		}
+	}
+
 	func read(_ byteCount: Int, byteOrder: ByteOrder = .bigEndian, startingAt offset: UInt64? = nil) throws -> [UInt8] {
 		let bytesData: Data
 		if let memoryRep = memoryRepresentation {
@@ -64,5 +76,9 @@ public class BinaryFile {
 		let size = MemoryLayout<BitRep>.size
 		return try read(size, byteOrder: byteOrder, startingAt: offset)
 			.converted(to: BitRep.self)
+	}
+
+	enum BinaryFileError: Error {
+		case outOfBounds
 	}
 }
