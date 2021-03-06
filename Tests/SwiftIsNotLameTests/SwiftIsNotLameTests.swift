@@ -85,18 +85,17 @@ final class SwiftIsNotLameTests: XCTestCase {
 	func testCafFloat32() throws {
 		let cafFileURL = Bundle.module.url(forResource: "sample", withExtension: "caf", subdirectory: "TestResources")!
 
-//		let testWav = try WavFile(filePath: wavFileURL)
 		let testCaf = try CafFile(filePath: cafFileURL)
 		try testCaf.loadIntoMemory()
 
-//		let mp3Data = try convert(testCaf)
-//
-//		let hash = dataMd5Hash(mp3Data)
-//
-//		XCTAssertEqual("e3054cc83ce36cbda0e222ae2d58ce02", hash)
+		let mp3Data = try convert(testCaf)
+
+		let hash = dataMd5Hash(mp3Data)
+
+		XCTAssertEqual("e3054cc83ce36cbda0e222ae2d58ce02", hash)
 	}
 
-	private func convert(_ wavFile: WavFile) throws -> Data {
+	private func convert(_ wavFile: AudioBinaryFile) throws -> Data {
 		let notLame = SwiftIsNotLame()
 
 		notLame.bitRate = .CBR(rate: 256)

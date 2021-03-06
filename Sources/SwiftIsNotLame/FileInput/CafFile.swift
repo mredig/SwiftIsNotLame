@@ -95,7 +95,7 @@ public class CafFile: AudioBinaryFile {
 		let isFloat = (readFormatFlags & AudioFormat.pcmFormatFloatFlag) != 0
 		let isLittleEndian = (readFormatFlags & AudioFormat.pcmFormatLittleEndianFlag) != 0
 
-		let format: SwiftIsNotLame.AudioInfo.AudioFormat = isFloat ? .float : .pcm
+		let format: SwiftIsNotLame.AudioInfo.AudioFormat = isFloat ? .pcmFloat : .pcm
 
 		guard
 			readFramesPerPacket == 1
@@ -110,14 +110,15 @@ public class CafFile: AudioBinaryFile {
 				supported. (ex. 24bit samples taking 32bits of padded space)
 				""")
 		}
-		guard
-			isLittleEndian == true
-		else {
-			throw CafError.unsupportedCafFile(
-				"""
-				FIX THIS SOON - big endian data not currently supported
-				""")
-		}
+//		guard
+//			isLittleEndian == true
+//		else {
+//			throw CafError.unsupportedCafFile(
+//				"""
+//				FIX THIS SOON - big endian data not currently supported
+//				""")
+//		}
+		let byteOrder: ByteOrder = isLittleEndian ? .littleEndian : .bigEndian
 
 		let channels: SwiftIsNotLame.ChannelCount
 		switch readChannels {
@@ -144,6 +145,7 @@ public class CafFile: AudioBinaryFile {
 			format: format,
 			channels: channels,
 			sampleRate: sampleRate,
+			byteOrder: byteOrder,
 			bitsPerSample: Int(readBitsPerChannel))
 	}
 
@@ -159,6 +161,7 @@ public class CafFile: AudioBinaryFile {
 
 extension CafFile: AudioBinaryFileDelegate {
 	func offsetForSample(_ sampleIndex: Int, channel: Int, audioInfo: SwiftIsNotLame.AudioInfo) -> (sampleOffset: Int, byteOrder: BinaryFile.ByteOrder) {
-		fatalError("not implemented!")
+		let offset = Int(sampleDataPointerOffsetStart) + (sampleIndex * audioInfo.channels.rawValue * audioInfo.bytesPerSample) + (audioInfo.bytesPerSample * channel)
+		return (offset, audioInfo.byteOrder)
 	}
 }

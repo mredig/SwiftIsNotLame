@@ -108,12 +108,13 @@ public class SwiftIsNotLame {
 	public struct AudioInfo {
 		public enum AudioFormat {
 			case pcm
-			case float
+			case pcmFloat
 		}
 		public let totalSampleSize: Int
 		public let format: AudioFormat
 		public let channels: ChannelCount
 		public let sampleRate: SampleRate
+		public let byteOrder: BinaryFile.ByteOrder
 		public let bitsPerSample: Int
 		public var bytesPerSample: Int { bitsPerSample / 8 }
 		public var totalSamples: Int {
@@ -126,6 +127,7 @@ public class SwiftIsNotLame {
 				format: format,
 				channels: channels,
 				sampleRate: sampleRate,
+				byteOrder: byteOrder,
 				bitsPerSample: bitsPerSample)
 		}
 	}
@@ -202,7 +204,7 @@ public class SwiftIsNotLame {
 			default:
 				fatalError()
 			}
-		case .float:
+		case .pcmFloat:
 			switch audioInfo.bitsPerSample {
 			case 32:
 				let channel1: [Float] = Array(try inputFile.channelBuffer(channel: 0))

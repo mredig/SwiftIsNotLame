@@ -67,7 +67,7 @@ public class WavFile: AudioBinaryFile {
 		let format: WavInfo.AudioFormat
 		switch formatTag {
 		case 3:
-			format = .float
+			format = .pcmFloat
 		default:
 			format = .pcm
 		}
@@ -93,6 +93,7 @@ public class WavFile: AudioBinaryFile {
 			format: format,
 			channels: try SwiftIsNotLame.ChannelCount(from: Int(channels)),
 			sampleRate: try SwiftIsNotLame.SampleRate(from: Int(samplesPerSecond)),
+			byteOrder: .littleEndian,
 			bitsPerSample: Int(bitsPerSample))
 	}
 
@@ -108,6 +109,6 @@ public class WavFile: AudioBinaryFile {
 extension WavFile: AudioBinaryFileDelegate {
 	func offsetForSample(_ sampleIndex: Int, channel: Int, audioInfo: SwiftIsNotLame.AudioInfo) -> (sampleOffset: Int, byteOrder: BinaryFile.ByteOrder) {
 		let offset = sampleDataPointerOffsetStart + (sampleIndex * audioInfo.channels.rawValue * audioInfo.bytesPerSample) + (audioInfo.bytesPerSample * channel)
-		return (offset, .littleEndian)
+		return (offset, audioInfo.byteOrder)
 	}
 }

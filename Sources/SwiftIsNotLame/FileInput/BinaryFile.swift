@@ -31,7 +31,7 @@ public class BinaryFile {
 		memoryOffset = Int(try handle.handleOffset())
 	}
 
-	enum ByteOrder {
+	public enum ByteOrder {
 		case bigEndian
 		case littleEndian
 	}
