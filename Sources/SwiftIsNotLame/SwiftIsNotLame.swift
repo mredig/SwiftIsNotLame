@@ -188,8 +188,13 @@ public class SwiftIsNotLame {
 					.map { Array($0) }
 				mp3Data = try encodeAudio(channel1, channel2)
 			case 64:
-				mp3Data = Data()
-				break
+				let channel1: [Double] = Array(try wavFile.channelBuffer(channel: 0))
+				let channel2: [Double]? = (
+					wavInfo.channels.rawValue > 1 ?
+						try wavFile.channelBuffer(channel: 1) :
+						nil)
+					.map { Array($0) }
+				mp3Data = try encodeAudio(channel1, channel2)
 			default:
 				fatalError()
 			}
