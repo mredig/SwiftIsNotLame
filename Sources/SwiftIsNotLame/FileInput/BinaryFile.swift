@@ -60,7 +60,7 @@ public class BinaryFile {
 		}
 	}
 
-	func read<BitRep: FixedWidthInteger>(single type: BitRep.Type, byteOrder: ByteOrder = .bigEndian, startingAt offset: UInt64? = nil) throws -> BitRep {
+	func read<BitRep: BitConversion>(single type: BitRep.Type, byteOrder: ByteOrder = .bigEndian, startingAt offset: UInt64? = nil) throws -> BitRep {
 		let size = MemoryLayout<BitRep>.size
 		return try read(size, byteOrder: byteOrder, startingAt: offset)
 			.converted(to: BitRep.self)

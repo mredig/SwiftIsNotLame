@@ -340,7 +340,7 @@ public class SwiftIsNotLame {
 	}
 }
 
-public protocol PCMBitRepresentation {
+public protocol PCMBitRepresentation: BitConversion {
 	static func lameEncode(_ lame: lame_t!, channelOneBuffer: UnsafePointer<Self>!, channelTwoBuffer: UnsafePointer<Self>!, sampleSize: Int, mp3Buffer: UnsafeMutablePointer<UInt8>!, mp3BufferCount: Int) -> Int32
 }
 

@@ -56,7 +56,7 @@ public class WavFile: BinaryFile {
 
 	// MARK: - Wav channel conveniences
 	/// Channel value is 0 indexed - if there are two channels, channel 0 and channel 1 are valid values.
-	public func sample<BitRep: FixedWidthInteger>(at offset: Int, channel: Int) throws -> BitRep {
+	public func sample<BitRep: PCMBitRepresentation>(at offset: Int, channel: Int) throws -> BitRep {
 		guard
 			let info = wavInfo,
 			channel < info.channels.rawValue
@@ -68,7 +68,7 @@ public class WavFile: BinaryFile {
 	}
 
 	/// Channel value is 0 indexed - if there are two channels, channel 0 and channel 1 are valid values.
-	public func channelBuffer<BitRep: FixedWidthInteger>(channel: Int) throws -> ContiguousArray<BitRep> {
+	public func channelBuffer<BitRep: PCMBitRepresentation>(channel: Int) throws -> ContiguousArray<BitRep> {
 		guard let info = wavInfo else { return [] }
 		let totalSamples = info.totalSamples
 		let is24Bit = info.bitsPerSample == 24
@@ -130,7 +130,7 @@ public class WavFile: BinaryFile {
 		let formatTag = try read(2, byteOrder: .littleEndian).converted(to: UInt16.self)
 		sizeRemaining -= 2
 		guard
-			[Self.wavFormatPCM].contains(formatTag)
+			[Self.wavFormatPCM, Self.wavFormatIEEEFloat].contains(formatTag)
 		else { throw WavError.notSupported("Only support PCM Wave format") }
 
 		let channels = try read(single: UInt16.self, byteOrder: .littleEndian)
@@ -174,7 +174,7 @@ extension Array where Element == UInt8 {
 	enum DataError: Error {
 		case incorrectByteCount
 	}
-	func converted<BitRep: FixedWidthInteger>(to type: BitRep.Type) throws -> BitRep {
+	func converted<BitRep: BitConversion>(to type: BitRep.Type) throws -> BitRep {
 
 		let byteSize = MemoryLayout<BitRep>.size
 		guard count == byteSize else { throw DataError.incorrectByteCount }
@@ -187,12 +187,12 @@ extension Array where Element == UInt8 {
 			.reduce(0, |)
 		*/
 
-		var outVal = BitRep(0)
+		var outVal = UInt64(0)
 		for index in 0..<count {
 			let bitshift = count - index - 1
-			outVal |= BitRep(self[index]) << (bitshift * 8)
+			outVal |= UInt64(self[index]) << (bitshift * 8)
 		}
-		return outVal
+		return outVal.convertBitsTo()
 
 		/*
 		// this is a slightly faster, yet more complex/ugly alternative

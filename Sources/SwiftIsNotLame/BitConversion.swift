@@ -1,10 +1,10 @@
 import Foundation
 
-protocol BitConversion {
+public protocol BitConversion {
 	func toBits() -> UInt64
 }
 
-extension BitConversion {
+public extension BitConversion {
 	func convertBitsTo<T>(_ type: T.Type) -> T {
 		convertBitsTo()
 	}
@@ -48,53 +48,53 @@ extension BitConversion {
 }
 
 extension UInt8: BitConversion {
-	func toBits() -> UInt64 { UInt64(self) }
+	public func toBits() -> UInt64 { UInt64(self) }
 }
 
 extension UInt16: BitConversion {
-	func toBits() -> UInt64 { UInt64(self) }
+	public func toBits() -> UInt64 { UInt64(self) }
 }
 
 extension UInt32: BitConversion {
-	func toBits() -> UInt64 { UInt64(self) }
+	public func toBits() -> UInt64 { UInt64(self) }
 }
 
 extension UInt64: BitConversion {
-	func toBits() -> UInt64 { self }
+	public func toBits() -> UInt64 { self }
 }
 
 extension UInt: BitConversion {
-	func toBits() -> UInt64 { UInt64(self) }
+	public func toBits() -> UInt64 { UInt64(self) }
 }
 
 extension Int8: BitConversion {
-	func toBits() -> UInt64 { Int64(self).toBits() }
+	public func toBits() -> UInt64 { Int64(self).toBits() }
 }
 
 extension Int16: BitConversion {
-	func toBits() -> UInt64 { Int64(self).toBits() }
+	public func toBits() -> UInt64 { Int64(self).toBits() }
 }
 
 extension Int32: BitConversion {
-	func toBits() -> UInt64 { Int64(self).toBits() }
+	public func toBits() -> UInt64 { Int64(self).toBits() }
 }
 
 extension Int64: BitConversion {
-	func toBits() -> UInt64 { UInt64(bitPattern: self) }
+	public func toBits() -> UInt64 { UInt64(bitPattern: self) }
 }
 
 extension Int: BitConversion {
-	func toBits() -> UInt64 { Int64(self).toBits() }
+	public func toBits() -> UInt64 { Int64(self).toBits() }
 }
 
 extension Float: BitConversion {
-	func toBits() -> UInt64 { bitPattern.toBits() }
+	public func toBits() -> UInt64 { bitPattern.toBits() }
 }
 
 extension Double: BitConversion {
-	func toBits() -> UInt64 { bitPattern }
+	public func toBits() -> UInt64 { bitPattern }
 }
 
 extension CGFloat: BitConversion {
-	func toBits() -> UInt64 { bitPattern.toBits() }
+	public func toBits() -> UInt64 { bitPattern.toBits() }
 }
